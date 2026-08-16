@@ -1,0 +1,60 @@
+name: Simulate CERTI ON release uploader
+
+on:
+  push:
+    branches:
+      - certion-uploader-sim
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-batch-preflight:
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CI: true
+    steps:
+      - name: Checkout simulation branch
+        uses: actions/checkout@v4
+
+      - name: Create 24 mock archive files for batch control-flow test
+        shell: pwsh
+        run: |
+          $dir = Join-Path $PWD 'uploader-sim\archives'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $files = @(
+            'v01__certi_on_ogq_ultimate__SOURCE.zip',
+            'v02__certi_on_ogq__SOURCE.zip',
+            'v03__certi_on_ogq_ultimate1__SOURCE.zip',
+            'v04__certi_on_ogq_ultimate2__SOURCE.zip',
+            'v05__certi_on_ogq_ultimate3__SOURCE.zip',
+            'v06__certi_on_ogq_ultimate4__SOURCE.zip',
+            'v07__z_real_final_final_final_certi_on_ogq_ai_fixed__SOURCE.zip',
+            'v08__CERTI_ON_OGQ_FULL_FIXED__SOURCE.zip',
+            'v09__CERTI_ON_OGQ_FULL_FIXED_V2__SOURCE.zip',
+            'v10__CERTI_ON_OGQ_LOCAL_AI_SMART__SOURCE.zip',
+            'v11__CERTI_ON_OGQ_LOCAL_AI_SMART_V2__SOURCE.zip',
+            'v12__CERTI_ON_OGQ_ORIGINAL_LOCAL_QWEN14B__SOURCE.zip',
+            'v13__CERTI_ON_OGQ_QWEN14B_SMART_CHAT_FIXED__SOURCE.zip',
+            'v14__CERTI_ON_OGQ_QWEN14B_SMART_CHAT_FIXED_V2__SOURCE.zip',
+            'v15__FINAL_ULTIMATE_CERTI_ON_OGQ_AI_MODEL_SELECTOR_NO_TIMEOUT__SOURCE.zip',
+            'v16__FINAL_FINAL_ULTIMATE_CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED__SOURCE.zip',
+            'v17__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V2__SOURCE.zip',
+            'v18__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V3__SOURCE.zip',
+            'v19__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V4__SOURCE.zip',
+            'v20__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V5__SOURCE.zip',
+            'v21__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V6__SOURCE.zip',
+            'v22__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V7__SOURCE.zip',
+            'v23__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V8__SOURCE.zip',
+            'v24__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V9__SOURCE.zip'
+          )
+          foreach ($name in $files) {
+            [IO.File]::WriteAllBytes((Join-Path $dir $name), [byte[]]::new(2048))
+          }
+          if ((Get-ChildItem $dir -File).Count -ne 24) { throw 'Expected 24 mock archives' }
+
+      - name: Run the exact Windows BAT in test-only mode
+        shell: cmd
+        run: call uploader-sim\UPLOAD_TO_INNOVATION_RELEASES.bat --test-only

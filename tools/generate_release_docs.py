@@ -55,7 +55,7 @@ def release_body(item: dict) -> str:
     delta = item['delta']
     highlights = '\n'.join(f"- {text}" for text in item['highlights'])
     status = '개발 기록' if item['prerelease'] else '대회 제출용 안정 버전'
-    return f"""# {korean_title(item)}
+    return f"""<!-- release-title: {korean_title(item)} -->
 
 > **{status} {item['order']:02d}/24** · 원본 프로젝트 폴더의 수정 시각(KST)을 기준으로 정렬한 역사 버전입니다.
 

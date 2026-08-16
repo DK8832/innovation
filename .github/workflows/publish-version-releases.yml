@@ -79,8 +79,12 @@ jobs:
             prerelease="$(jq -r '.prerelease' <<<"$row")"
             notes="releases/$tag/RELEASE_NOTES.md"
             [[ -f "$notes" ]] || { echo "릴리스 설명 파일 없음: $notes" >&2; exit 1; }
-            title="$(sed -n '1s/^# //p' "$notes")"
-            [[ -n "$title" ]] || { echo "릴리스 제목을 읽을 수 없습니다: $notes" >&2; exit 1; }
+            title="$(sed -n '1s/^<!-- release-title: \(.*\) -->$/\1/p' "$notes")"
+            [[ -n "$title" ]] || { echo "릴리스 제목 메타데이터를 읽을 수 없습니다: $notes" >&2; exit 1; }
+            if grep -q '^# CERTI:ON ' "$notes"; then
+              echo "[$tag] 본문에 릴리스 제목이 중복되어 있습니다." >&2
+              exit 1
+            fi
 
             if [[ "$prerelease" == "true" ]]; then
               gh release edit "$tag" --repo "$REPO" --title "$title" --notes-file "$notes" --prerelease
@@ -104,23 +108,28 @@ jobs:
             sha="$(jq -r '.sha256' <<<"$row")"
             expected_pre="$(jq -r '.prerelease' <<<"$row")"
             notes="releases/$tag/RELEASE_NOTES.md"
-            title="$(sed -n '1s/^# //p' "$notes")"
+            title="$(sed -n '1s/^<!-- release-title: \(.*\) -->$/\1/p' "$notes")"
             release_json="$(gh api "repos/$REPO/releases/tags/$tag")"
 
             actual_title="$(jq -r '.name' <<<"$release_json")"
             actual_pre="$(jq -r '.prerelease' <<<"$release_json")"
             actual_digest="$(jq -r --arg asset "$asset" '.assets[] | select(.name == $asset) | .digest // ""' <<<"$release_json")"
+            actual_body="$(jq -r '.body' <<<"$release_json")"
 
             [[ "$actual_title" == "$title" ]] || { echo "[$tag] 제목 불일치" >&2; exit 1; }
             [[ "$actual_pre" == "$expected_pre" ]] || { echo "[$tag] 사전 릴리스 상태 불일치" >&2; exit 1; }
             [[ "$actual_digest" == "sha256:$sha" ]] || { echo "[$tag] 반영 후 SHA-256 불일치" >&2; exit 1; }
+            if grep -q '^# CERTI:ON ' <<<"$actual_body"; then
+              echo "[$tag] GitHub 릴리스 본문에 제목 중복이 남아 있습니다." >&2
+              exit 1
+            fi
             pass=$((pass+1))
           done < <(jq -c '.[]' <<<"$catalog")
 
           [[ "$pass" == "24" ]] || { echo "24개 릴리스 최종 검증 실패: $pass" >&2; exit 1; }
           latest_tag="$(gh api "repos/$REPO/releases/latest" --jq '.tag_name')"
           [[ "$latest_tag" == "v1.0.0" ]] || { echo "최신 릴리스가 $latest_tag 입니다. v1.0.0이어야 합니다." >&2; exit 1; }
-          echo '최종 릴리스 검증: 24/24 통과, v1.0.0 Latest 확인'
+          echo '최종 릴리스 검증: 24/24 통과, 중복 제목 없음, v1.0.0 Latest 확인'
 
       - name: 생성된 한국어 릴리스 문서 동기화
         shell: bash
@@ -133,7 +142,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add CHANGELOG.md releases/
-          git commit -m 'docs: 한국어 릴리스 설명 동기화 [skip ci]'
+          git commit -m 'docs: 중복 제목 제거된 릴리스 설명 동기화 [skip ci]'
           if ! git push origin HEAD:main; then
             echo '::warning::릴리스 정보 반영은 성공했지만 생성 문서를 main에 push하지 못했습니다.'
           fi

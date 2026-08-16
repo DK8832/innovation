@@ -1,0 +1,106 @@
+name: V9 최종 소스 저장소 구성
+
+on:
+  push:
+    branches:
+      - materialize-v9-main
+    paths:
+      - '.github/workflows/materialize-v9-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    name: 업로드 ZIP 검증 후 V9 소스만 구성
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      RELEASE_TAG: v1.0.0
+      RELEASE_ASSET: v24__CERTI_ON_OGQ_STANDALONE_AI_ALL_FIXED_V9__SOURCE.zip
+    steps:
+      - name: 작업 브랜치 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: materialize-v9-main
+          fetch-depth: 0
+
+      - name: 기존 Release의 V9 원본 ZIP 다운로드
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v9-download /tmp/v9-extracted
+          gh release download "$RELEASE_TAG" --repo "$REPO" --pattern "$RELEASE_ASSET" --dir /tmp/v9-download
+          test -f "/tmp/v9-download/$RELEASE_ASSET"
+          unzip -q "/tmp/v9-download/$RELEASE_ASSET" -d /tmp/v9-extracted
+
+      - name: 사용자 업로드 ZIP과 파일 단위 SHA-256 대조
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd /tmp/v9-extracted
+            find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sed 's#  \./#  #'
+          ) > /tmp/actual-v9-sha256.txt
+
+          echo '--- expected ---'
+          cat .expected-v9-sha256.txt
+          echo '--- actual ---'
+          cat /tmp/actual-v9-sha256.txt
+
+          diff -u .expected-v9-sha256.txt /tmp/actual-v9-sha256.txt
+          test "$(wc -l < /tmp/actual-v9-sha256.txt)" -eq 35
+          echo 'V9 ZIP 검증 완료: 35/35 파일 SHA-256 일치'
+
+      - name: 저장소를 V9 프로젝트 소스로 교체
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp README_TARGET.md /tmp/README.md
+
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -a /tmp/v9-extracted/. .
+          cp /tmp/README.md README.md
+
+          test -f lib/main.dart
+          test -f pubspec.yaml
+          test -f RUN_CERTION_ALL.bat
+          test -f backend/server.mjs
+          test -f assets/data/certificates.seed.json
+          test -f README.md
+
+      - name: 비밀정보 및 불필요 파일 검사
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f \( -name '.env' -o -name 'local.properties' \) -print | grep -q .; then
+            echo '비밀/로컬 환경 파일이 발견되었습니다.' >&2
+            find . -type f \( -name '.env' -o -name 'local.properties' \) -print >&2
+            exit 1
+          fi
+
+          if grep -RIl --exclude='*.png' -E 'sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}' . | grep -q .; then
+            echo '비밀키 형식 문자열이 발견되었습니다.' >&2
+            exit 1
+          fi
+
+          test ! -d .github
+          test ! -d release_catalog
+          test ! -d releases
+          test ! -d .version_payload
+          test ! -f CHANGELOG.md
+          test ! -f VERSION_INDEX.csv
+          test ! -f PUBLISH_ALL_VERSION_ASSETS.bat
+          echo '불필요한 릴리스 관리 파일 및 비밀정보 검사 완료'
+
+      - name: 정리된 V9 소스를 작업 브랜치에 반영
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: V9 최종 프로젝트 소스로 저장소 정리'
+          git push origin HEAD:materialize-v9-main

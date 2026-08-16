@@ -35,13 +35,22 @@ jobs:
           gh release download "$RELEASE_TAG" --repo "$REPO" --pattern "$RELEASE_ASSET" --dir /tmp/v9-download
           test -f "/tmp/v9-download/$RELEASE_ASSET"
           unzip -q "/tmp/v9-download/$RELEASE_ASSET" -d /tmp/v9-extracted
+          chmod -R u+rwX /tmp/v9-extracted
+
+          SRC_ROOT=/tmp/v9-extracted
+          mapfile -t top_entries < <(find /tmp/v9-extracted -mindepth 1 -maxdepth 1 -print)
+          if [[ "${#top_entries[@]}" -eq 1 && -d "${top_entries[0]}" ]]; then
+            SRC_ROOT="${top_entries[0]}"
+          fi
+          echo "SRC_ROOT=$SRC_ROOT" >> "$GITHUB_ENV"
+          echo "검증 대상 루트: $SRC_ROOT"
 
       - name: 사용자 업로드 ZIP과 파일 단위 SHA-256 대조
         shell: bash
         run: |
           set -euo pipefail
           (
-            cd /tmp/v9-extracted
+            cd "$SRC_ROOT"
             find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sed 's#  \./#  #'
           ) > /tmp/actual-v9-sha256.txt
 
@@ -61,7 +70,7 @@ jobs:
           cp README_TARGET.md /tmp/README.md
 
           find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-          cp -a /tmp/v9-extracted/. .
+          cp -a "$SRC_ROOT"/. .
           cp /tmp/README.md README.md
 
           test -f lib/main.dart

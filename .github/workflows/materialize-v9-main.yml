@@ -42,6 +42,10 @@ jobs:
           if [[ "${#top_entries[@]}" -eq 1 && -d "${top_entries[0]}" ]]; then
             SRC_ROOT="${top_entries[0]}"
           fi
+
+          # Release 패키징 과정에서만 추가된 설명 파일은 사용자가 올린 원본 ZIP에는 없으므로 제외합니다.
+          rm -f "$SRC_ROOT/RELEASE_INFO.md"
+
           echo "SRC_ROOT=$SRC_ROOT" >> "$GITHUB_ENV"
           echo "검증 대상 루트: $SRC_ROOT"
 
@@ -54,14 +58,9 @@ jobs:
             find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sed 's#  \./#  #'
           ) > /tmp/actual-v9-sha256.txt
 
-          echo '--- expected ---'
-          cat .expected-v9-sha256.txt
-          echo '--- actual ---'
-          cat /tmp/actual-v9-sha256.txt
-
           diff -u .expected-v9-sha256.txt /tmp/actual-v9-sha256.txt
           test "$(wc -l < /tmp/actual-v9-sha256.txt)" -eq 35
-          echo 'V9 ZIP 검증 완료: 35/35 파일 SHA-256 일치'
+          echo 'V9 ZIP 검증 완료: 사용자 업로드 ZIP의 35개 파일과 SHA-256 35/35 일치'
 
       - name: 저장소를 V9 프로젝트 소스로 교체
         shell: bash
@@ -102,6 +101,7 @@ jobs:
           test ! -f CHANGELOG.md
           test ! -f VERSION_INDEX.csv
           test ! -f PUBLISH_ALL_VERSION_ASSETS.bat
+          test ! -f RELEASE_INFO.md
           echo '불필요한 릴리스 관리 파일 및 비밀정보 검사 완료'
 
       - name: 정리된 V9 소스를 작업 브랜치에 반영

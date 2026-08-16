@@ -1,4 +1,4 @@
-name: Audit and publish CERTI:ON historical releases
+name: CERTI:ON 역사 버전 감사 및 릴리스 반영
 
 on:
   push:
@@ -16,30 +16,30 @@ permissions:
 
 jobs:
   release-audit-and-publish:
-    name: Verify 24 snapshots and publish release metadata
+    name: 24개 스냅샷 검증 및 릴리스 정보 반영
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
     steps:
-      - name: Checkout repository
+      - name: 저장소 체크아웃
         uses: actions/checkout@v4
 
-      - name: Generate professional release notes from audited catalog
+      - name: 검증된 카탈로그에서 한국어 릴리스 설명 생성
         shell: bash
         run: |
           set -euo pipefail
           python tools/generate_release_docs.py
 
-      - name: Verify all 24 historical source assets before changing releases
+      - name: 릴리스 수정 전 24개 원본 Asset 무결성 검증
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t catalog_files < <(find release_catalog -maxdepth 1 -name 'part-*.json' -type f | sort)
-          [[ "${#catalog_files[@]}" -gt 0 ]] || { echo 'No catalog files found.' >&2; exit 1; }
+          [[ "${#catalog_files[@]}" -gt 0 ]] || { echo '카탈로그 파일을 찾을 수 없습니다.' >&2; exit 1; }
           catalog="$(jq -s 'add | sort_by(.order)' "${catalog_files[@]}")"
           expected_count="$(jq 'length' <<<"$catalog")"
-          [[ "$expected_count" == "24" ]] || { echo "Expected 24 catalog entries, got $expected_count" >&2; exit 1; }
+          [[ "$expected_count" == "24" ]] || { echo "카탈로그 항목은 24개여야 합니다. 현재: $expected_count" >&2; exit 1; }
 
           pass=0
           while IFS= read -r row; do
@@ -49,25 +49,25 @@ jobs:
             release_json="$(gh api "repos/$REPO/releases/tags/$tag")"
 
             asset_count="$(jq --arg asset "$asset" '[.assets[] | select(.name == $asset)] | length' <<<"$release_json")"
-            [[ "$asset_count" == "1" ]] || { echo "[$tag] expected exactly one $asset, got $asset_count" >&2; exit 1; }
+            [[ "$asset_count" == "1" ]] || { echo "[$tag] $asset 파일이 정확히 1개여야 합니다. 현재: $asset_count" >&2; exit 1; }
 
             state="$(jq -r --arg asset "$asset" '.assets[] | select(.name == $asset) | .state' <<<"$release_json")"
             digest="$(jq -r --arg asset "$asset" '.assets[] | select(.name == $asset) | .digest // ""' <<<"$release_json")"
-            [[ "$state" == "uploaded" ]] || { echo "[$tag] asset state=$state" >&2; exit 1; }
+            [[ "$state" == "uploaded" ]] || { echo "[$tag] Asset 상태 오류: $state" >&2; exit 1; }
             [[ "$digest" == "sha256:$sha" ]] || {
-              echo "[$tag] SHA-256 mismatch" >&2
-              echo " expected: sha256:$sha" >&2
-              echo " actual:   $digest" >&2
+              echo "[$tag] SHA-256 불일치" >&2
+              echo " 예상: sha256:$sha" >&2
+              echo " 실제: $digest" >&2
               exit 1
             }
-            echo "PASS $tag -> $asset ($digest)"
+            echo "통과 $tag -> $asset ($digest)"
             pass=$((pass+1))
           done < <(jq -c '.[]' <<<"$catalog")
 
-          [[ "$pass" == "24" ]] || { echo "Asset audit expected 24 PASS, got $pass" >&2; exit 1; }
-          echo 'ASSET AUDIT: 24/24 PASS'
+          [[ "$pass" == "24" ]] || { echo "Asset 검증은 24개 모두 통과해야 합니다. 현재: $pass" >&2; exit 1; }
+          echo 'ASSET 무결성 검증: 24/24 통과'
 
-      - name: Apply professional titles, detailed notes and release status
+      - name: 한국어 제목·상세 설명·릴리스 상태 반영
         shell: bash
         run: |
           set -euo pipefail
@@ -76,20 +76,21 @@ jobs:
 
           while IFS= read -r row; do
             tag="$(jq -r '.tag' <<<"$row")"
-            title="$(jq -r '.title' <<<"$row")"
             prerelease="$(jq -r '.prerelease' <<<"$row")"
             notes="releases/$tag/RELEASE_NOTES.md"
-            [[ -f "$notes" ]] || { echo "Missing notes: $notes" >&2; exit 1; }
+            [[ -f "$notes" ]] || { echo "릴리스 설명 파일 없음: $notes" >&2; exit 1; }
+            title="$(sed -n '1s/^# //p' "$notes")"
+            [[ -n "$title" ]] || { echo "릴리스 제목을 읽을 수 없습니다: $notes" >&2; exit 1; }
 
             if [[ "$prerelease" == "true" ]]; then
               gh release edit "$tag" --repo "$REPO" --title "$title" --notes-file "$notes" --prerelease
             else
               gh release edit "$tag" --repo "$REPO" --title "$title" --notes-file "$notes" --latest
             fi
-            echo "UPDATED $tag -> $title"
+            echo "반영 완료 $tag -> $title"
           done < <(jq -c '.[]' <<<"$catalog")
 
-      - name: Final metadata and integrity audit
+      - name: 최종 릴리스 정보 및 무결성 재검증
         shell: bash
         run: |
           set -euo pipefail
@@ -99,39 +100,40 @@ jobs:
 
           while IFS= read -r row; do
             tag="$(jq -r '.tag' <<<"$row")"
-            title="$(jq -r '.title' <<<"$row")"
             asset="$(jq -r '.asset' <<<"$row")"
             sha="$(jq -r '.sha256' <<<"$row")"
             expected_pre="$(jq -r '.prerelease' <<<"$row")"
+            notes="releases/$tag/RELEASE_NOTES.md"
+            title="$(sed -n '1s/^# //p' "$notes")"
             release_json="$(gh api "repos/$REPO/releases/tags/$tag")"
 
             actual_title="$(jq -r '.name' <<<"$release_json")"
             actual_pre="$(jq -r '.prerelease' <<<"$release_json")"
             actual_digest="$(jq -r --arg asset "$asset" '.assets[] | select(.name == $asset) | .digest // ""' <<<"$release_json")"
 
-            [[ "$actual_title" == "$title" ]] || { echo "[$tag] title mismatch" >&2; exit 1; }
-            [[ "$actual_pre" == "$expected_pre" ]] || { echo "[$tag] prerelease mismatch" >&2; exit 1; }
-            [[ "$actual_digest" == "sha256:$sha" ]] || { echo "[$tag] digest mismatch after update" >&2; exit 1; }
+            [[ "$actual_title" == "$title" ]] || { echo "[$tag] 제목 불일치" >&2; exit 1; }
+            [[ "$actual_pre" == "$expected_pre" ]] || { echo "[$tag] 사전 릴리스 상태 불일치" >&2; exit 1; }
+            [[ "$actual_digest" == "sha256:$sha" ]] || { echo "[$tag] 반영 후 SHA-256 불일치" >&2; exit 1; }
             pass=$((pass+1))
           done < <(jq -c '.[]' <<<"$catalog")
 
-          [[ "$pass" == "24" ]] || { echo "Expected 24 releases, got $pass" >&2; exit 1; }
+          [[ "$pass" == "24" ]] || { echo "24개 릴리스 최종 검증 실패: $pass" >&2; exit 1; }
           latest_tag="$(gh api "repos/$REPO/releases/latest" --jq '.tag_name')"
-          [[ "$latest_tag" == "v1.0.0" ]] || { echo "Latest release is $latest_tag, expected v1.0.0" >&2; exit 1; }
-          echo 'FINAL RELEASE AUDIT: 24/24 PASS; v1.0.0 is Latest'
+          [[ "$latest_tag" == "v1.0.0" ]] || { echo "최신 릴리스가 $latest_tag 입니다. v1.0.0이어야 합니다." >&2; exit 1; }
+          echo '최종 릴리스 검증: 24/24 통과, v1.0.0 Latest 확인'
 
-      - name: Synchronize generated release documentation
+      - name: 생성된 한국어 릴리스 문서 동기화
         shell: bash
         run: |
           set -euo pipefail
           if git diff --quiet -- CHANGELOG.md releases/; then
-            echo 'Generated documentation is already synchronized.'
+            echo '생성 문서는 이미 최신 상태입니다.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add CHANGELOG.md releases/
-          git commit -m 'docs: synchronize audited release notes [skip ci]'
+          git commit -m 'docs: 한국어 릴리스 설명 동기화 [skip ci]'
           if ! git push origin HEAD:main; then
-            echo '::warning::Release metadata passed audit, but generated repository docs could not be pushed.'
+            echo '::warning::릴리스 정보 반영은 성공했지만 생성 문서를 main에 push하지 못했습니다.'
           fi

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-batch-preflight:
@@ -58,3 +58,21 @@ jobs:
       - name: Run the exact Windows BAT in test-only mode
         shell: cmd
         run: call uploader-sim\UPLOAD_TO_INNOVATION_RELEASES.bat --test-only
+
+      - name: Real gh release upload integration test on a temporary release
+        shell: pwsh
+        run: |
+          $tag = "uploader-sim-$env:GITHUB_RUN_ID"
+          $asset = Join-Path $env:RUNNER_TEMP 'CERTI_ON_UPLOAD_TEST.zip'
+          [IO.File]::WriteAllBytes($asset, [byte[]]::new(4096))
+          try {
+            gh release create $tag --repo DK8832/innovation --target main --title $tag --notes 'temporary uploader integration test'
+            gh release upload $tag $asset --repo DK8832/innovation --clobber
+            $json = gh release view $tag --repo DK8832/innovation --json assets | ConvertFrom-Json
+            if (-not ($json.assets | Where-Object { $_.name -eq 'CERTI_ON_UPLOAD_TEST.zip' })) {
+              throw 'Uploaded test asset was not found in the temporary release.'
+            }
+          }
+          finally {
+            gh release delete $tag --repo DK8832/innovation --yes --cleanup-tag 2>$null
+          }

@@ -1,4 +1,4 @@
-# CERTI:ON v0.22.0 — 내부 추론 노출 방지 · reasoning 차단·빌드 lock 보호
+<!-- release-title: CERTI:ON v0.22.0 — 내부 추론 노출 방지 · reasoning 차단·빌드 lock 보호 -->
 
 > **개발 기록 22/24** · 원본 프로젝트 폴더의 수정 시각(KST)을 기준으로 정렬한 역사 버전입니다.
 

@@ -1,4 +1,4 @@
-# CERTI:ON v0.12.0 — Android 네이티브 기준본 · 기존 UI + Qwen3 14B
+<!-- release-title: CERTI:ON v0.12.0 — Android 네이티브 기준본 · 기존 UI + Qwen3 14B -->
 
 > **개발 기록 12/24** · 원본 프로젝트 폴더의 수정 시각(KST)을 기준으로 정렬한 역사 버전입니다.
 

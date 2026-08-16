@@ -1,4 +1,4 @@
-# CERTI:ON v0.17.0 — Android 빌드 강화 · Gradle / SDK 검증
+<!-- release-title: CERTI:ON v0.17.0 — Android 빌드 강화 · Gradle / SDK 검증 -->
 
 > **개발 기록 17/24** · 원본 프로젝트 폴더의 수정 시각(KST)을 기준으로 정렬한 역사 버전입니다.
 

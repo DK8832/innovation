@@ -1,0 +1,85 @@
+{
+  "updatedAt": "2026-08-16T00:36:00+09:00",
+  "source": "대한상공회의소 자격평가사업단 공식 상시검정 안내",
+  "sourceUrl": "https://license.korcham.net/customer/faqMain.do",
+  "exams": [
+    {
+      "id": "rolling-computer-1",
+      "name": "컴퓨터활용능력 1급",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "사무·OA",
+      "badge": "상시",
+      "eligibility": "응시자격 제한 없음. 세부 시험안내는 공식 페이지 확인.",
+      "schedule": "접수기간 매일 접수 · 시험일은 지역 상공회의소별 확인",
+      "result": "필기: 시험일 다음날 오전 10시 · 실기: 시험일 포함 주 제외 2주 뒤 화요일",
+      "difficulty": 4,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0103&mm=21",
+      "benefit": "취업·공기업·사무직에서 활용도가 높은 대표 국가기술자격"
+    },
+    {
+      "id": "rolling-computer-2",
+      "name": "컴퓨터활용능력 2급",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "사무·OA",
+      "badge": "상시",
+      "eligibility": "응시자격 제한 없음. 세부 시험안내는 공식 페이지 확인.",
+      "schedule": "접수기간 매일 접수 · 시험일은 지역 상공회의소별 확인",
+      "result": "필기: 시험일 다음날 오전 10시 · 실기: 시험일 포함 주 제외 2주 뒤 화요일",
+      "difficulty": 2,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0103&mm=21",
+      "benefit": "엑셀·사무 자동화 역량을 증명하기 좋은 입문형 국가기술자격"
+    },
+    {
+      "id": "rolling-word",
+      "name": "워드프로세서",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "사무·OA",
+      "badge": "상시",
+      "eligibility": "응시자격 제한 없음. 세부 시험안내는 공식 페이지 확인.",
+      "schedule": "접수기간 매일 접수 · 시험일은 지역 상공회의소별 확인",
+      "result": "필기: 시험일 다음날 오전 10시 · 실기: 시험일 포함 주 제외 2주 뒤 화요일",
+      "difficulty": 2,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0102&mm=22",
+      "benefit": "문서작성·사무 기본 역량을 증명하는 국가기술자격"
+    },
+    {
+      "id": "rolling-accounting-2",
+      "name": "전산회계운용사 2급",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "서비스·경영",
+      "badge": "상시",
+      "eligibility": "세부 응시자격은 공식 종목안내 확인.",
+      "schedule": "상시검정 운영 · 접수와 시험 가능일은 지역 시험장 확인",
+      "result": "필기·실기 발표기준은 공식 상시시험 안내 확인",
+      "difficulty": 3,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0104&mm=41",
+      "benefit": "회계정보 처리와 전산회계 실무 역량을 증명하는 국가기술자격"
+    },
+    {
+      "id": "rolling-accounting-3",
+      "name": "전산회계운용사 3급",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "서비스·경영",
+      "badge": "상시",
+      "eligibility": "세부 응시자격은 공식 종목안내 확인. 일부 특성화고 대상 필기면제검정 제도가 있음.",
+      "schedule": "상시검정 운영 · 접수와 시험 가능일은 지역 시험장 확인",
+      "result": "필기·실기 발표기준은 공식 상시시험 안내 확인",
+      "difficulty": 2,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0104&mm=41",
+      "benefit": "회계 기초와 전산 처리능력을 증명하기 좋은 국가기술자격"
+    },
+    {
+      "id": "rolling-hanja",
+      "name": "상공회의소 한자 1~9급",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "category": "기타",
+      "badge": "상시",
+      "eligibility": "급수별 응시 제한 및 공인/등록 구분은 공식 종목안내 확인.",
+      "schedule": "접수기간 매일 접수 · 시험일은 지역 상공회의소별 확인",
+      "result": "필기형 상시검정 발표 기준은 공식 안내 확인",
+      "difficulty": 2,
+      "sourceUrl": "https://license.korcham.net/kor/license/schedule.jsp?cd=0103&mm=53",
+      "benefit": "한자 이해력·어휘력을 급수로 증명할 수 있는 자격"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 name: certi_on
 description: OGQ hackathon mobile prototype - official certificate schedules, AI briefing, planner, comparison and trust-first sync.
 publish_to: "none"
-version: 2.0.0+10
+version: 3.0.0+11
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -14,6 +14,10 @@ dependencies:
   path_provider: 2.1.5
   llama_flutter_android:
     path: packages/llama_flutter_android
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 
 flutter:
   uses-material-design: true

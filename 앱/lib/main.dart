@@ -90,6 +90,36 @@ class CertiOnApp extends StatelessWidget {
           ),
         ),
       ),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        const designWidth = 430.0;
+        final scale = media.size.width < designWidth
+            ? media.size.width / designWidth
+            : 1.0;
+        final designHeight = media.size.height / scale;
+        final visibleWidth = media.size.width < designWidth
+            ? media.size.width
+            : designWidth;
+        return ColoredBox(
+          color: const Color(0xFFF3F0EE),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: visibleWidth,
+              height: media.size.height,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: designWidth,
+                  height: designHeight,
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
       home: const AppShell(),
     );
   }
@@ -244,7 +274,7 @@ class AppAssetThumb extends StatelessWidget {
             if (snapshot.hasData) {
               return Image.memory(
                 snapshot.data!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.medium,
                 errorBuilder: (context, error, stackTrace) {
@@ -3523,18 +3553,95 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
     return Scaffold(
       body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: _CertiBottomNav(
         selectedIndex: _index,
         onDestinationSelected: _goTo,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: '홈'),
-          NavigationDestination(icon: Icon(Icons.search_rounded), label: '탐색'),
-          NavigationDestination(
-              icon: Icon(Icons.calendar_month_rounded), label: '일정'),
-          NavigationDestination(
-              icon: Icon(Icons.auto_awesome_rounded), label: 'AI 브리핑'),
-          NavigationDestination(icon: Icon(Icons.person_rounded), label: 'MY'),
-        ],
+      ),
+    );
+  }
+}
+
+class _CertiBottomNav extends StatelessWidget {
+  const _CertiBottomNav({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+
+  static const _items = <(IconData, String)>[
+    (Icons.home_rounded, '홈'),
+    (Icons.search_rounded, '탐색'),
+    (Icons.calendar_month_rounded, '일정'),
+    (Icons.auto_awesome_rounded, 'AI 브리핑'),
+    (Icons.person_rounded, 'MY'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 74,
+          child: Row(
+            children: List.generate(_items.length, (index) {
+              final selected = selectedIndex == index;
+              final item = _items[index];
+              return Expanded(
+                child: InkWell(
+                  onTap: () => onDestinationSelected(index),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: 46,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? const Color(0xFFE8E2DA)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            item.$1,
+                            size: 23,
+                            color: selected
+                                ? const Color(0xFF024AD8)
+                                : const Color(0xFF141413),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item.$2,
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: selected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: selected
+                                  ? const Color(0xFF024AD8)
+                                  : const Color(0xFF696969),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }
@@ -7151,7 +7258,7 @@ class _SmartToolGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.16,
+      childAspectRatio: 0.74,
       children: [
         _SmartToolCard(
           icon: Icons.explore_rounded,

@@ -117,7 +117,7 @@
       const start=url.searchParams.get("start"), end=url.searchParams.get("end");
       return response(events().filter(e => (!start || e.date>=start) && (!end || e.date<=end)));
     }
-    if (api === "/api/app/android") return response({available:true,platform:"Android",version:"2.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk",size_bytes:23584072,download_url:APK_URL});
+    if (api === "/api/app/android") return response({available:true,platform:"Android",version:"3.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk",size_bytes:23584072,download_url:APK_URL});
     if (api === "/api/sources") return response([
       {id:"curated",label:"공식 출처 확인 데이터",kind:"curated",enabled:true,detail:`${EXAMS.length}개 시험 종목의 저장 데이터를 브라우저에서 사용합니다. 최신 접수 전에는 공식 사이트를 다시 확인하세요.`},
       {id:"public_api",label:"공공데이터 자동 동기화",kind:"public_api",enabled:false,detail:"GitHub Pages 공개 데모는 서버가 없어 자동 동기화가 꺼져 있습니다. Full-Stack 실행에서 DATA_GO_KR_KEY를 사용할 수 있습니다."},

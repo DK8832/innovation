@@ -1,0 +1,103 @@
+name: "CERTI-ON v3 web metadata finalization"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/certion-v3-web-meta-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fix visible v3 metadata
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('웹/frontend/static_api.js')
+          s = p.read_text(encoding='utf-8')
+          old = 'version:"2.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk"'
+          new = 'version:"3.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk"'
+          if old not in s:
+              raise SystemExit('stale v2 Android metadata marker not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+          print('Visible web APK metadata updated to v3.0.0')
+          PY
+
+      - name: Verify metadata
+        run: |
+          grep -q 'version:"3.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk"' '웹/frontend/static_api.js'
+          ! grep -q 'version:"2.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk"' '웹/frontend/static_api.js'
+
+      - name: Responsive browser QA
+        run: |
+          mkdir -p /tmp/certion-web-qa
+          cd /tmp/certion-web-qa
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.2 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null
+          cp "$GITHUB_WORKSPACE/.github/scripts/web_qa.js" .
+          node web_qa.js
+
+      - name: Commit corrected web metadata
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '웹/frontend/static_api.js'
+          git commit -m 'fix: show CERTI:ON v3.0.0 in public web download metadata [skip ci]'
+          git push origin HEAD:main
+
+      - name: Replace v3 web source asset and retarget tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          out = Path('/tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip')
+          src = Path('웹')
+          excludes = {'.git','node_modules','__pycache__'}
+          skip = {'.env'}
+          with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for p in sorted(src.rglob('*')):
+                  rel = p.relative_to(src)
+                  if any(x in excludes for x in rel.parts) or p.name in skip or not p.is_file():
+                      continue
+                  z.write(p, str(Path('CERTI_ON_v3.0.0_WEB') / rel))
+          PY
+          unzip -tq /tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip
+          gh release upload v3.0.0 /tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip --repo DK8832/innovation --clobber
+          git tag -f v3.0.0 "$(git rev-parse HEAD)"
+          git push origin refs/tags/v3.0.0 --force
+
+      - name: Deploy corrected web to gh-pages
+        run: |
+          git fetch origin gh-pages:gh-pages
+          rm -rf /tmp/certion-gh-pages
+          git worktree add /tmp/certion-gh-pages gh-pages
+          rsync -a --delete --exclude='.git' '웹/frontend/' /tmp/certion-gh-pages/
+          touch /tmp/certion-gh-pages/.nojekyll
+          cd /tmp/certion-gh-pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'deploy: corrected CERTI:ON v3 web metadata [skip ci]'
+            git push origin HEAD:gh-pages
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: certion-v3-final-web-qa
+          path: qa-*.png
+          retention-days: 7

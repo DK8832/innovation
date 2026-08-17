@@ -104,12 +104,6 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install playwright@1.54.2 >/dev/null 2>&1
           npx playwright install chromium >/dev/null
-          cd "$GITHUB_WORKSPACE/웹/frontend"
-          python3 -m http.server 8765 --bind 127.0.0.1 >/tmp/certion-http.log 2>&1 &
-          PID=$!
-          trap 'kill $PID || true' EXIT
-          sleep 2
-          cd /tmp/certion-web-qa
           cp "$GITHUB_WORKSPACE/.github/scripts/web_qa.js" .
           node web_qa.js
 

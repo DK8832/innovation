@@ -161,7 +161,6 @@ jobs:
 
           if kts.exists():
               s = kts.read_text(encoding='utf-8')
-              # v0.12~v0.15 계열의 과거 Kotlin DSL 최상위 compilerOptions 블록 제거.
               pattern = re.compile(
                   r'(?ms)^\s*kotlin\s*\{\s*compilerOptions\s*\{\s*'
                   r'jvmTarget\s*=\s*org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget\.JVM_17\s*'
@@ -171,7 +170,6 @@ jobs:
               if count:
                   print(f'과거 Kotlin DSL 블록 {count}개 제거')
 
-              # llama_flutter_android는 Android API 26 이상을 요구합니다.
               if 'llama_flutter_android' in pubspec:
                   replacements = [
                       (r'minSdk\s*=\s*flutter\.minSdkVersion', 'minSdk = 26'),
@@ -194,6 +192,20 @@ jobs:
               if s != before:
                   print('Groovy 설정에 llama_flutter_android용 minSdk 26 적용')
               groovy.write_text(s, encoding='utf-8')
+
+          config_text = ''
+          if kts.exists():
+              config_text += kts.read_text(encoding='utf-8', errors='ignore')
+          if groovy.exists():
+              config_text += groovy.read_text(encoding='utf-8', errors='ignore')
+          proguard = Path('android/app/proguard-rules.pro')
+          if 'proguard-rules.pro' in config_text and not proguard.exists():
+              proguard.parent.mkdir(parents=True, exist_ok=True)
+              proguard.write_text(
+                  '# CERTI:ON historical release compatibility placeholder\n',
+                  encoding='utf-8',
+              )
+              print('누락된 proguard-rules.pro 생성 완료')
           PY
 
       - name: Flutter 의존성 설치

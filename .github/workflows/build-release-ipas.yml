@@ -177,15 +177,19 @@ jobs:
           set -euo pipefail
           cd "$PROJECT_ROOT"
           if grep -q 'llama_flutter_android' pubspec.yaml; then
-            echo "llama_flutter_android 감지: Metal Toolchain과 ggml 헤더 경로를 준비합니다."
-            xcodebuild -downloadComponent MetalToolchain
-            xcrun -sdk iphoneos metal -v >/dev/null 2>&1 || true
+            echo "llama_flutter_android 감지: Xcode 추가 구성요소와 ggml 헤더 경로를 준비합니다."
+            if ! xcrun -sdk iphoneos metal -v >/dev/null 2>&1; then
+              sudo xcodebuild -runFirstLaunch -checkForNewerComponents || sudo xcodebuild -runFirstLaunch || true
+            fi
             while IFS= read -r SRC; do
               METAL_DIR="$SRC/ggml-metal"
               if [ -d "$METAL_DIR" ] && [ -f "$SRC/ggml-common.h" ]; then
                 ln -sf ../ggml-common.h "$METAL_DIR/ggml-common.h"
               fi
             done < <(find "$HOME/.pub-cache" "$PROJECT_ROOT" -type d -path '*/llama_cpp_src/ggml/src' 2>/dev/null || true)
+            if ! xcrun -sdk iphoneos metal -v >/dev/null 2>&1; then
+              echo "::warning::이 Xcode runner에서 standalone Metal compiler를 찾지 못했습니다. 빌드 단계에서 대체 경로를 확인합니다."
+            fi
           fi
 
       - name: iPhone Release 앱 실제 빌드 (코드서명 없음)

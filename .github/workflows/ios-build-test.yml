@@ -40,6 +40,45 @@ jobs:
           test -f ios/Runner.xcodeproj/project.pbxproj
           rm -rf .idea test certi_on.iml analysis_options.yaml
 
+      - name: Android 전용 llama 플러그인 로컬 고정
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          PLUGIN_SRC="$HOME/.pub-cache/hosted/pub.dev/llama_flutter_android-0.2.6"
+          test -d "$PLUGIN_SRC"
+          rm -rf packages/llama_flutter_android
+          mkdir -p packages/llama_flutter_android
+          cp -a "$PLUGIN_SRC/lib" packages/llama_flutter_android/
+          cp -a "$PLUGIN_SRC/android" packages/llama_flutter_android/
+          cp "$PLUGIN_SRC/pubspec.yaml" packages/llama_flutter_android/pubspec.yaml
+          cp "$PLUGIN_SRC/LICENSE" packages/llama_flutter_android/LICENSE
+          cp "$PLUGIN_SRC/README.md" packages/llama_flutter_android/README.md
+          test -f packages/llama_flutter_android/android/build.gradle || test -f packages/llama_flutter_android/android/build.gradle.kts
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          plugin = Path('packages/llama_flutter_android/pubspec.yaml')
+          s = plugin.read_text(encoding='utf-8')
+          ios_block = "      ios:\n        pluginClass: LlamaFlutterAndroidPlugin\n"
+          if ios_block not in s:
+              raise SystemExit('llama plugin iOS platform block not found')
+          s = s.replace(ios_block, '', 1)
+          plugin.write_text(s, encoding='utf-8')
+
+          app = Path('pubspec.yaml')
+          s = app.read_text(encoding='utf-8')
+          old = '  llama_flutter_android: 0.2.6\n'
+          new = '  llama_flutter_android:\n    path: packages/llama_flutter_android\n'
+          if old not in s:
+              raise SystemExit('app llama dependency not found')
+          s = s.replace(old, new, 1)
+          app.write_text(s, encoding='utf-8')
+          PY
+
+          flutter pub get
+
       - name: iPhone 호환 동작 패치
         shell: bash
         run: |
@@ -114,7 +153,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .github
+          rm -rf .github .dart_tool build
           cat > IOS_INSTALL_KR.md <<'EOF'
           # CERTI:ON iPhone 설치 안내
 
@@ -132,7 +171,7 @@ jobs:
           - iPhone: 공식 일정/탐색/캘린더/플래너 등 앱 기능 + 같은 Wi-Fi의 PC Ollama AI 지원
           - Android 전용 `llama_flutter_android` 기반 휴대폰 단독 AI 버튼은 iPhone에서 비활성화됩니다.
 
-          iOS에서 PC AI를 사용할 때 로컬 네트워크 권한 요청이 표시될 수 있습니다.
+          `packages/llama_flutter_android`에는 MIT 라이선스의 Android 구현만 로컬 고정하여 iOS 빌드에서 해당 Android 전용 네이티브 코드가 등록되지 않도록 했습니다. iOS에서 PC AI를 사용할 때 로컬 네트워크 권한 요청이 표시될 수 있습니다.
           EOF
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

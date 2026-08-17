@@ -146,29 +146,21 @@ jobs:
           from pathlib import Path
           import re
 
-          # 오래된 스냅샷에서 너무 낮은 deployment target 때문에 최신 Xcode/CocoaPods가 실패하는 것을 방지.
+          # 후기 역사 버전의 llama_flutter_android iOS pod가 iOS 14.0 이상을 요구함.
           podfile = Path('ios/Podfile')
           if podfile.exists():
               s = podfile.read_text(encoding='utf-8', errors='ignore')
               if re.search(r"platform\s*:ios", s):
-                  s = re.sub(r"platform\s*:ios\s*,\s*['\"]\d+(?:\.\d+)?['\"]", "platform :ios, '13.0'", s, count=1)
+                  s = re.sub(r"platform\s*:ios\s*,\s*['\"]\d+(?:\.\d+)?['\"]", "platform :ios, '14.0'", s, count=1)
               else:
-                  s = "platform :ios, '13.0'\n" + s
+                  s = "platform :ios, '14.0'\n" + s
               podfile.write_text(s, encoding='utf-8')
 
           pbx = Path('ios/Runner.xcodeproj/project.pbxproj')
           if pbx.exists():
               s = pbx.read_text(encoding='utf-8', errors='ignore')
-              s = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = \d+(?:\.\d+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 13.0;', s)
+              s = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = \d+(?:\.\d+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 14.0;', s)
               pbx.write_text(s, encoding='utf-8')
-
-          # 역사 버전의 번들 식별자를 릴리스별로 바꿀 필요는 없지만,
-          # Xcode가 유효한 identifier를 요구하므로 비어 있거나 template 값만 정리.
-          info = Path('ios/Runner/Info.plist')
-          if info.exists():
-              s = info.read_text(encoding='utf-8', errors='ignore')
-              s = s.replace('$(PRODUCT_BUNDLE_IDENTIFIER)', 'com.dk8832.certion') if '$(PRODUCT_BUNDLE_IDENTIFIER)' not in s else s
-              info.write_text(s, encoding='utf-8')
           PY
 
       - name: Flutter 의존성 설치

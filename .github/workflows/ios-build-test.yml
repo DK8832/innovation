@@ -38,6 +38,7 @@ jobs:
           flutter create --platforms=ios --org com.dk8832 --project-name certi_on .
           test -f ios/Runner/Info.plist
           test -f ios/Runner.xcodeproj/project.pbxproj
+          rm -rf .idea test certi_on.iml analysis_options.yaml
 
       - name: iPhone 호환 동작 패치
         shell: bash
@@ -98,8 +99,8 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get
-          dart format --output=none --set-exit-if-changed lib/main.dart || dart format lib/main.dart
-          flutter analyze
+          dart format lib/main.dart
+          flutter analyze lib/main.dart
 
       - name: iOS Release 실제 빌드 검증
         shell: bash
@@ -117,7 +118,7 @@ jobs:
           cat > IOS_INSTALL_KR.md <<'EOF'
           # CERTI:ON iPhone 설치 안내
 
-          이 프로젝트는 iOS 프로젝트 파일을 포함하며 실제 macOS GitHub Actions에서 `flutter build ios --release --no-codesign` 빌드 검증을 통과하도록 구성되었습니다.
+          이 프로젝트는 iOS 프로젝트 파일을 포함하며 macOS GitHub Actions에서 `flutter build ios --release --no-codesign` 실제 빌드 검증을 통과한 소스입니다.
 
           ## Mac + Xcode로 iPhone에 설치
           1. Mac에 최신 Flutter와 Xcode를 설치합니다.

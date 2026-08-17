@@ -2,8 +2,10 @@
 
 **공식 자격증·시험 일정을 한곳에 모으고, AI가 일정 이해와 준비 판단을 보조하는 Flutter 기반 자격증 일정·플래너 앱**
 
-CERTI:ON은 여러 기관에 흩어진 자격증·시험 일정을 공식 1차 출처 중심으로 통합하고, 사용자가 접수일·시험일·발표일을 놓치지 않도록 일정 관리, 비교, 학습 계획, AI 브리핑을 연결합니다.  
-핵심 원칙은 **“AI가 사실을 만들어내는 것이 아니라, 공식 데이터를 이해하기 쉽게 설명하고 사용자가 출처를 직접 검증할 수 있게 하는 것”**입니다.
+CERTI:ON은 여러 기관에 흩어진 자격증·시험 일정을 공식 1차 출처 중심으로 통합하고, 사용자가 접수일·시험일·발표일을 놓치지 않도록 일정 관리, 비교, 학습 계획, AI 브리핑을 연결합니다. 핵심 원칙은 **“AI가 사실을 만들어내는 것이 아니라, 공식 데이터를 이해하기 쉽게 설명하고 사용자가 출처를 직접 검증할 수 있게 하는 것”**입니다.
+
+> **현재 안정 버전: v2.0.0**  
+> Android와 iPhone을 함께 지원하도록 확장한 버전이며, macOS GitHub Actions에서 실제 iOS Release 빌드(`flutter build ios --release --no-codesign`) 검증을 통과했습니다.
 
 ## 1. 문제 정의
 
@@ -25,51 +27,57 @@ CERTI:ON은 이를 **공식 일정 통합 → 일정 관리 → 비교/우선순
 - 자격증 비교와 준비 우선순위 판단 보조
 - AI 핵심 브리핑 및 추가 질문
 - 공식 출처 링크를 통한 원문 검증
-- 휴대폰 온디바이스 AI와 선택형 PC 고성능 AI 지원
+- Android 휴대폰 온디바이스 AI 지원
+- Android/iPhone 공통 PC 고성능 AI 연결 지원
 - 앱에 포함된 공식 일정 스냅샷: **고정 일정 101건 + 상시시험 6종**
 
 ## 3. 시스템 아키텍처
 
 ```text
-┌──────────────────────────────┐
-│        Flutter Android App   │
-│  홈 · 탐색 · 일정 · AI · MY │
-└──────────────┬───────────────┘
-               │
-       ┌───────┴────────┐
-       │                │
-       ▼                ▼
-┌───────────────┐  ┌────────────────────┐
-│ 앱 내 공식 데이터 │  │ 휴대폰 온디바이스 AI │
-│ JSON 101+6건   │  │ llama_flutter_android │
-│ 공식 URL 포함  │  │ Qwen3 GGUF          │
-└───────────────┘  └────────────────────┘
-                         │
-                         │ 선택 사용
-                         ▼
-                  ┌──────────────────┐
-                  │ PC Node Backend  │
-                  │ :8787            │
-                  └────────┬─────────┘
-                           ▼
-                  ┌──────────────────┐
-                  │ Ollama :11434    │
-                  │ Qwen3 4B/8B/14B │
-                  └──────────────────┘
+┌─────────────────────────────────────┐
+│          Flutter Mobile App         │
+│   Android / iPhone                  │
+│   홈 · 탐색 · 일정 · AI · MY       │
+└────────────────┬────────────────────┘
+                 │
+        ┌────────┴─────────┐
+        │                  │
+        ▼                  ▼
+┌─────────────────┐  ┌────────────────────────┐
+│ 앱 내 공식 데이터 │  │ Android 온디바이스 AI │
+│ JSON 101+6건     │  │ Qwen3 GGUF             │
+│ 공식 URL 포함    │  │ llama_flutter_android  │
+└─────────────────┘  └────────────────────────┘
+        │
+        │ 선택 사용
+        ▼
+┌──────────────────────────┐
+│ PC Node Backend :8787    │
+└────────────┬─────────────┘
+             ▼
+┌──────────────────────────┐
+│ Ollama :11434            │
+│ Qwen3 4B / 8B / 14B     │
+└──────────────────────────┘
 ```
 
-휴대폰 단독 모드에서는 다운로드한 GGUF 모델로 PC 없이 AI 기능을 사용할 수 있습니다. 더 높은 성능이 필요한 경우 같은 Wi-Fi의 PC에서 Ollama를 실행해 4B/8B/14B 모델을 선택적으로 사용할 수 있습니다.
+### 플랫폼별 AI 동작
+
+- **Android:** 휴대폰 내부 Qwen3 GGUF 온디바이스 AI + 선택형 PC Ollama AI
+- **iPhone:** 일정·탐색·캘린더·비교·플래너 등 앱 기능 + 같은 Wi-Fi의 PC Ollama AI
+- 현재 사용 중인 `llama_flutter_android`는 Android 중심 플러그인이므로, iPhone에서는 휴대폰 단독 GGUF AI 버튼을 비활성화하여 빌드 안정성을 확보했습니다.
 
 ## 4. 기술 스택
 
 | 구분 | 사용 기술 |
 |---|---|
 | 앱 | Flutter / Dart |
-| 모바일 | Android ARM64 |
-| 온디바이스 AI | `llama_flutter_android` + Qwen3 GGUF |
+| 모바일 | Android ARM64 / iOS |
+| Android 온디바이스 AI | `llama_flutter_android` + Qwen3 GGUF |
 | PC AI | Ollama + Qwen3 4B / 8B / 14B |
 | 백엔드 | Node.js HTTP Server |
-| 자동화 | Windows Batch / PowerShell |
+| Android 자동화 | Windows Batch / PowerShell |
+| iOS 빌드 | Xcode / CocoaPods / Flutter iOS |
 | 데이터 | JSON 기반 공식 일정 스냅샷 |
 | 네트워크 | 동일 Wi-Fi 기반 PC AI 연결, TCP 8787 |
 
@@ -77,11 +85,13 @@ CERTI:ON은 이를 **공식 일정 통합 → 일정 관리 → 비교/우선순
 
 - `http: 1.6.0`
 - `path_provider: 2.1.5`
-- `llama_flutter_android: 0.2.6`
+- `llama_flutter_android: 0.2.6` 기반 로컬 패키지
 
 ## 5. 실행 방법
 
-### 준비 환경
+### Android
+
+준비 환경:
 
 - Windows
 - Flutter `3.35.0` 이상
@@ -89,8 +99,6 @@ CERTI:ON은 이를 **공식 일정 통합 → 일정 관리 → 비교/우선순
 - Java 17 이상
 - Android USB 디버깅이 허용된 ARM64 Android 기기
 - PC AI를 사용할 경우 Ollama
-
-### 원클릭 실행
 
 저장소 루트에서 다음 파일을 실행합니다.
 
@@ -106,7 +114,16 @@ RUN_CERTION_ALL.bat
 OUTPUT\CERTI_ON.apk
 ```
 
-휴대폰 AI 모델은 앱에서 최초 1회 다운로드하며, 이후에는 해당 모델을 유지하기 위해 자동 `uninstall`을 수행하지 않습니다.
+### iPhone
+
+1. Mac에 Flutter와 Xcode를 설치합니다.
+2. 저장소 루트에서 `flutter pub get`을 실행합니다.
+3. `open ios/Runner.xcworkspace`를 실행합니다.
+4. Xcode의 **Runner → Signing & Capabilities**에서 자신의 Apple Team을 선택합니다.
+5. Bundle Identifier를 자신의 계정에서 사용할 수 있는 고유한 값으로 설정합니다.
+6. iPhone을 연결하고 Developer Mode를 활성화한 뒤 Xcode에서 Run을 실행합니다.
+
+자세한 내용은 [`IOS_INSTALL_KR.md`](IOS_INSTALL_KR.md)를 참고하세요.
 
 ## 6. 공식 데이터 및 출처 원칙
 
@@ -128,8 +145,8 @@ OUTPUT\CERTI_ON.apk
 
 ### 앱 실행에 사용되는 AI
 
-- **휴대폰 고품질 모드:** Qwen3 1.7B Q4_K_M GGUF
-- **휴대폰 빠른 모드:** Qwen3 0.6B Q4_0 GGUF
+- **Android 휴대폰 고품질 모드:** Qwen3 1.7B Q4_K_M GGUF
+- **Android 휴대폰 빠른 모드:** Qwen3 0.6B Q4_0 GGUF
 - **PC 선택형 AI:** Ollama 기반 Qwen3 4B / 8B / 14B
 - AI는 공식 일정 DB를 설명·요약하고 질문에 답하는 보조 역할로 사용합니다.
 - 일정이 미발표되었거나 공식 근거가 없는 경우 임의 날짜를 생성하지 않도록 설계했습니다.
@@ -153,7 +170,17 @@ OUTPUT\CERTI_ON.apk
 - **모델 배포/변환 자산:** ggml-org의 Qwen3 GGUF 배포본
 - **외부 자문(교사/현직자):** 별도 외부 자문 없음
 
-## 9. 라이선스
+## 9. v2.0.0 핵심 변경 사항
+
+- Android 전용 구조에서 **Android + iPhone 지원 구조**로 확장
+- Flutter iOS 프로젝트 및 Xcode 설정 추가
+- iOS 로컬 네트워크 접근 권한 설정 추가
+- iPhone에서 Android 전용 온디바이스 AI 경로를 안전하게 비활성화
+- Android 전용 llama 플러그인을 로컬 패키지로 고정하여 iOS 빌드 충돌 제거
+- macOS 환경에서 `flutter analyze lib/main.dart` 검증 통과
+- macOS 환경에서 `flutter build ios --release --no-codesign` 실제 Release 빌드 검증 통과
+
+## 10. 라이선스
 
 이 저장소에는 프로젝트 자체에 대한 별도의 `LICENSE` 파일이 포함되어 있지 않습니다. 따라서 별도 허가가 없는 한 프로젝트 소스의 저작권은 제작자에게 있으며, 외부 라이브러리·AI 모델·공식 데이터는 각각의 원 저작권자 및 제공처가 정한 라이선스와 이용약관을 따릅니다.
 

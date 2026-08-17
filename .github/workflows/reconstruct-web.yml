@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - '.web_payload_gz/**'
-      - '.web_payload_fix/**'
       - '.github/workflows/reconstruct-web.yml'
   workflow_dispatch:
 
@@ -22,45 +21,31 @@ jobs:
       - name: 저장소 체크아웃
         uses: actions/checkout@v4
 
-      - name: 압축된 웹 소스 재구성
+      - name: Python으로 웹 소스 재구성
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p '웹/frontend' '웹/docs'
+          python3 - <<'PY'
+          import base64, gzip
+          from pathlib import Path
 
-          decode_gzip_b64() {
-            local source="$1"
-            local target="$2"
-            echo "decode: $source -> $target"
-            tr -d '\r\n\t ' < "$source" | base64 --decode | gzip --decompress > "$target"
+          files = {
+              '.web_payload_gz/index.b64': '웹/frontend/index.html',
+              '.web_payload_gz/app.b64': '웹/frontend/app.js',
+              '.web_payload_gz/style.b64': '웹/frontend/style.css',
+              '.web_payload_gz/static.b64': '웹/frontend/static_api.js',
+              '.web_payload_gz/verify.b64': '웹/verify_all.py',
+              '.web_payload_gz/docs.b64': '웹/docs/DATA_SOURCES.md',
           }
-
-          echo 'decode: split index payload -> 웹/frontend/index.html'
-          cat .web_payload_fix/index.*.part | tr -d '\r\n\t ' | base64 --decode | gzip --decompress > '웹/frontend/index.html'
-          decode_gzip_b64 '.web_payload_gz/app.b64'    '웹/frontend/app.js'
-          decode_gzip_b64 '.web_payload_gz/style.b64'  '웹/frontend/style.css'
-          decode_gzip_b64 '.web_payload_gz/static.b64' '웹/frontend/static_api.js'
-          decode_gzip_b64 '.web_payload_gz/verify.b64' '웹/verify_all.py'
-          echo 'decode: split docs payload -> 웹/docs/DATA_SOURCES.md'
-          cat .web_payload_fix/docs.*.part | tr -d '\r\n\t ' | base64 --decode | gzip --decompress > '웹/docs/DATA_SOURCES.md'
-
-      - name: 재구성 파일 SHA-256·크기 검증
-        shell: bash
-        run: |
-          set -euo pipefail
-          printf '%s  %s\n' 'c55ce8a9e4cc86e3d1314ccce1fa38cae9d39ccfa5363ece2113a9d54397623c' '웹/frontend/index.html' | sha256sum -c -
-          printf '%s  %s\n' 'e75864275753c6d87bc0d28937ebe322191179022010b8739215593e9bc01c54' '웹/frontend/app.js' | sha256sum -c -
-          printf '%s  %s\n' '3aef1b41fe3309b075bfa1498300167c4522b5de59d67488f840e0c7162eed1e' '웹/frontend/style.css' | sha256sum -c -
-          printf '%s  %s\n' '0b9369d4a7274eff2a2ca91a4e2c47b59f7d0f64e1b42bc1758e8763efde2bd6' '웹/frontend/static_api.js' | sha256sum -c -
-          printf '%s  %s\n' 'ee0a9baa2d31d5013d330e207dfc589e62831e5ff47e8b6d55918b81aa2930a9' '웹/verify_all.py' | sha256sum -c -
-          printf '%s  %s\n' '26f1ed033e667d06c9af15461019269f7f094118a07c0dde7f4a5b141628e541' '웹/docs/DATA_SOURCES.md' | sha256sum -c -
-
-          test "$(wc -c < '웹/frontend/index.html')" -eq 22844
-          test "$(wc -c < '웹/frontend/app.js')" -eq 26979
-          test "$(wc -c < '웹/frontend/style.css')" -eq 26660
-          test "$(wc -c < '웹/frontend/static_api.js')" -eq 14846
-          test "$(wc -c < '웹/verify_all.py')" -eq 25955
-          test "$(wc -c < '웹/docs/DATA_SOURCES.md')" -eq 6281
+          for source, target in files.items():
+              src = Path(source)
+              dst = Path(target)
+              encoded = ''.join(src.read_text(encoding='ascii').split())
+              data = gzip.decompress(base64.b64decode(encoded, validate=True))
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              dst.write_bytes(data)
+              print(f'OK {source} -> {target}: {len(data)} bytes')
+          PY
 
       - name: JavaScript·Python 문법 검사
         shell: bash

@@ -145,7 +145,7 @@ jobs:
           test -f android/gradlew
           chmod +x android/gradlew
 
-      - name: 과거 Android Kotlin DSL 호환성 보정
+      - name: 과거 Android 빌드 설정 호환성 보정
         if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
@@ -155,29 +155,45 @@ jobs:
           from pathlib import Path
           import re
 
-          p = Path('android/app/build.gradle.kts')
-          if not p.exists():
-              raise SystemExit(0)
+          kts = Path('android/app/build.gradle.kts')
+          groovy = Path('android/app/build.gradle')
+          pubspec = Path('pubspec.yaml').read_text(encoding='utf-8', errors='ignore')
 
-          s = p.read_text(encoding='utf-8')
-          original = s
+          if kts.exists():
+              s = kts.read_text(encoding='utf-8')
+              # v0.12~v0.15 계열의 과거 Kotlin DSL 최상위 compilerOptions 블록 제거.
+              pattern = re.compile(
+                  r'(?ms)^\s*kotlin\s*\{\s*compilerOptions\s*\{\s*'
+                  r'jvmTarget\s*=\s*org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget\.JVM_17\s*'
+                  r'\}\s*\}\s*'
+              )
+              s, count = pattern.subn('', s)
+              if count:
+                  print(f'과거 Kotlin DSL 블록 {count}개 제거')
 
-          # 일부 과거 스냅샷에는 당시 Kotlin Gradle DSL에서만 동작하던
-          # 최상위 kotlin { compilerOptions { ... } } 블록이 남아 있습니다.
-          # 현재 Flutter/AGP 조합에서는 이 블록이 스크립트 컴파일 오류를 내므로
-          # APK 패키징 시에만 제거합니다. 앱의 Dart/기능 소스는 변경하지 않습니다.
-          pattern = re.compile(
-              r'(?ms)^\s*kotlin\s*\{\s*compilerOptions\s*\{\s*'
-              r'jvmTarget\s*=\s*org\.jetbrains\.kotlin\.gradle\.dsl\.JvmTarget\.JVM_17\s*'
-              r'\}\s*\}\s*'
-          )
-          s, count = pattern.subn('', s)
+              # llama_flutter_android는 Android API 26 이상을 요구합니다.
+              if 'llama_flutter_android' in pubspec:
+                  replacements = [
+                      (r'minSdk\s*=\s*flutter\.minSdkVersion', 'minSdk = 26'),
+                      (r'minSdk\s*=\s*\d+', 'minSdk = 26'),
+                      (r'minSdkVersion\s*\(\s*flutter\.minSdkVersion\s*\)', 'minSdkVersion(26)'),
+                  ]
+                  before = s
+                  for pat, repl in replacements:
+                      s = re.sub(pat, repl, s, count=1)
+                  if s != before:
+                      print('llama_flutter_android용 minSdk 26 적용')
+              kts.write_text(s, encoding='utf-8')
 
-          if count:
-              p.write_text(s, encoding='utf-8')
-              print(f'과거 Kotlin DSL 호환 블록 {count}개 제거 완료: {p}')
-          else:
-              print('추가 Kotlin DSL 보정 불필요')
+          if groovy.exists() and 'llama_flutter_android' in pubspec:
+              s = groovy.read_text(encoding='utf-8')
+              before = s
+              s = re.sub(r'minSdkVersion\s+flutter\.minSdkVersion', 'minSdkVersion 26', s, count=1)
+              s = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 26', s, count=1)
+              s = re.sub(r'minSdk\s+flutter\.minSdkVersion', 'minSdk 26', s, count=1)
+              if s != before:
+                  print('Groovy 설정에 llama_flutter_android용 minSdk 26 적용')
+              groovy.write_text(s, encoding='utf-8')
           PY
 
       - name: Flutter 의존성 설치

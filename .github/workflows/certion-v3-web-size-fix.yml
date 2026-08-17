@@ -1,0 +1,71 @@
+name: "CERTI-ON v3 APK metadata correction"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/certion-v3-web-size-fix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Correct APK byte size
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('웹/frontend/static_api.js')
+          s=p.read_text(encoding='utf-8')
+          old='size_bytes:23584072,download_url:APK_URL'
+          new='size_bytes:23600984,download_url:APK_URL'
+          if old not in s:
+              raise SystemExit('old APK size marker not found')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          grep -q 'version:"3.0.0",filename:"CERTI_ON_v3.0.0_ANDROID.apk",size_bytes:23600984' '웹/frontend/static_api.js'
+      - name: Commit corrected metadata
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '웹/frontend/static_api.js'
+          git commit -m 'fix: align public APK metadata with v3.0.0 asset [skip ci]'
+          git push origin HEAD:main
+      - name: Refresh v3 web source and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+          src=Path('웹'); out=Path('/tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip')
+          with zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              for p in sorted(src.rglob('*')):
+                  rel=p.relative_to(src)
+                  if any(x in {'.git','node_modules','__pycache__'} for x in rel.parts) or p.name=='.env' or not p.is_file(): continue
+                  z.write(p,str(Path('CERTI_ON_v3.0.0_WEB')/rel))
+          PY
+          unzip -tq /tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip
+          gh release upload v3.0.0 /tmp/CERTI_ON_v3.0.0_WEB_SOURCE.zip --repo DK8832/innovation --clobber
+          git tag -f v3.0.0 "$(git rev-parse HEAD)"
+          git push origin refs/tags/v3.0.0 --force
+      - name: Deploy corrected metadata
+        run: |
+          git fetch origin gh-pages:gh-pages
+          rm -rf /tmp/certion-gh-pages
+          git worktree add /tmp/certion-gh-pages gh-pages
+          rsync -a --delete --exclude='.git' '웹/frontend/' /tmp/certion-gh-pages/
+          touch /tmp/certion-gh-pages/.nojekyll
+          cd /tmp/certion-gh-pages
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'deploy: align CERTI:ON v3 APK metadata [skip ci]'
+            git push origin HEAD:gh-pages
+          fi

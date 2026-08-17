@@ -1,0 +1,116 @@
+name: CERTI:ON v2.0.0 릴리스 게시
+
+on:
+  push:
+    branches:
+      - release-v2.0.0-publish
+    paths:
+      - '.github/workflows/publish-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: main 소스 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: v2.0.0 소스 검증
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '^version: 2.0.0+10$' pubspec.yaml
+          test -d ios/Runner.xcworkspace
+          test -f IOS_INSTALL_KR.md
+          test -f IPHONE_SETUP.command
+          test -d packages/llama_flutter_android
+          echo 'v2.0.0 source verification passed'
+
+      - name: 배포용 소스 ZIP 생성
+        shell: bash
+        run: |
+          set -euo pipefail
+          ASSET="$RUNNER_TEMP/CERTI_ON_v2.0.0_ANDROID_IOS_SOURCE.zip"
+          zip -rq "$ASSET" . \
+            -x '.git/*' \
+            -x '.dart_tool/*' \
+            -x 'build/*' \
+            -x '.idea/*' \
+            -x '*.iml' \
+            -x '.flutter-plugins' \
+            -x '.flutter-plugins-dependencies' \
+            -x 'android/local.properties' \
+            -x 'ios/Pods/*' \
+            -x 'ios/.symlinks/*' \
+            -x 'ios/Flutter/ephemeral/*'
+          unzip -t "$ASSET"
+          echo "ASSET=$ASSET" >> "$GITHUB_ENV"
+
+      - name: 릴리스 설명 생성
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          ## 개요
+
+          CERTI:ON v2.0.0은 기존 Android 중심 구조를 **Android + iPhone 통합 지원 구조**로 확장한 정식 버전입니다.
+
+          ## v1.0.0 대비 주요 개선 사항
+
+          - Flutter iOS/Xcode 프로젝트를 추가하여 iPhone 빌드 지원
+          - iOS 로컬 네트워크 접근 권한 설정 추가
+          - iPhone에서 같은 Wi-Fi의 PC Ollama AI 연결 지원
+          - Android의 Qwen3 GGUF 온디바이스 AI 기능은 그대로 유지
+          - Android 전용 `llama_flutter_android`를 프로젝트 내부 로컬 패키지로 고정하여 iOS 빌드 충돌 제거
+          - iPhone에서는 Android 전용 휴대폰 단독 GGUF AI 경로를 안전하게 비활성화
+          - `IOS_INSTALL_KR.md`와 `IPHONE_SETUP.command` 추가
+          - 프로젝트 내부 버전을 `2.0.0+10`으로 정리
+
+          ## 빌드 검증
+
+          iOS 지원 코드는 macOS GitHub Actions에서 다음 과정을 실제로 통과했습니다.
+
+          - `flutter pub get`
+          - `flutter analyze lib/main.dart`
+          - `flutter build ios --release --no-codesign`
+
+          ## 플랫폼별 AI 지원
+
+          - **Android:** 휴대폰 Qwen3 GGUF 온디바이스 AI + PC Ollama AI
+          - **iPhone:** 자격증 일정·탐색·캘린더·비교·플래너 + PC Ollama AI
+
+          ## 설치 파일
+
+          `CERTI_ON_v2.0.0_ANDROID_IOS_SOURCE.zip`은 Android와 iPhone 지원 소스 전체를 포함합니다.
+
+          iPhone 실기기 설치는 Apple 코드 서명이 필요하므로 Mac + Xcode에서 자신의 Apple Team을 선택해야 합니다. 자세한 내용은 프로젝트의 `IOS_INSTALL_KR.md`를 참고하세요.
+          EOF
+
+      - name: GitHub Release v2.0.0 생성 및 ZIP 업로드
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TARGET_SHA="$(git rev-parse HEAD)"
+          gh release create v2.0.0 "$ASSET" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$TARGET_SHA" \
+            --title 'CERTI:ON v2.0.0 — Android·iPhone 통합 지원' \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --latest
+
+      - name: 게시 결과 검증
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view v2.0.0 --repo "$GITHUB_REPOSITORY" --json tagName,name,isDraft,isPrerelease,assets
+          gh release view v2.0.0 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -Fx 'CERTI_ON_v2.0.0_ANDROID_IOS_SOURCE.zip'
+          echo 'CERTI:ON v2.0.0 release published and verified'

@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '.web_payload_gz/**'
+      - '.web_payload_fix/**'
       - '.github/workflows/reconstruct-web.yml'
   workflow_dispatch:
 
@@ -34,12 +35,14 @@ jobs:
             tr -d '\r\n\t ' < "$source" | base64 --decode | gzip --decompress > "$target"
           }
 
-          decode_gzip_b64 '.web_payload_gz/index.b64'  '웹/frontend/index.html'
+          echo 'decode: split index payload -> 웹/frontend/index.html'
+          cat .web_payload_fix/index.*.part | tr -d '\r\n\t ' | base64 --decode | gzip --decompress > '웹/frontend/index.html'
           decode_gzip_b64 '.web_payload_gz/app.b64'    '웹/frontend/app.js'
           decode_gzip_b64 '.web_payload_gz/style.b64'  '웹/frontend/style.css'
           decode_gzip_b64 '.web_payload_gz/static.b64' '웹/frontend/static_api.js'
           decode_gzip_b64 '.web_payload_gz/verify.b64' '웹/verify_all.py'
-          decode_gzip_b64 '.web_payload_gz/docs.b64'   '웹/docs/DATA_SOURCES.md'
+          echo 'decode: split docs payload -> 웹/docs/DATA_SOURCES.md'
+          cat .web_payload_fix/docs.*.part | tr -d '\r\n\t ' | base64 --decode | gzip --decompress > '웹/docs/DATA_SOURCES.md'
 
       - name: 재구성 파일 SHA-256·크기 검증
         shell: bash

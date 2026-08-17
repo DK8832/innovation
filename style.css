@@ -535,3 +535,74 @@ main.container { padding-top: 96px; padding-bottom: 64px; }
   .display-h1 { font-size: 27px; }
   main.container { padding-top: 84px; }
 }
+
+
+/* CERTI:ON v3 mobile hardening */
+html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
+img, svg, video, canvas { max-width: 100%; }
+
+@media (max-width: 700px) {
+  .container { width: 100%; max-width: none; padding-left: 14px; padding-right: 14px; }
+  .floating-nav {
+    top: 10px; left: 12px; right: 12px; width: auto; max-width: none; transform: none;
+    padding: 10px; gap: 8px; border-radius: 20px; flex-direction: column; align-items: stretch;
+  }
+  .floating-nav .logo { justify-content: center; width: 100%; font-size: 14px; }
+  .view-switch {
+    width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; justify-content: flex-start;
+  }
+  .view-switch::-webkit-scrollbar, .filter-group::-webkit-scrollbar, .upcoming-row::-webkit-scrollbar { display: none; }
+  .view-btn { flex: 0 0 auto; padding: 7px 11px; font-size: 12px; }
+  main.container { padding-top: 138px; padding-bottom: 40px; }
+  .hero-intro { max-width: none; margin-bottom: 28px; }
+  .eyebrow { font-size: 10.5px; margin-bottom: 12px; }
+  .display-h1 { font-size: clamp(26px, 8.4vw, 32px); line-height: 1.24; overflow-wrap: anywhere; }
+  .hero-body { font-size: 13.5px; line-height: 1.65; }
+  .app-download {
+    grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 22px 18px;
+    border-radius: 22px; margin-bottom: 30px;
+  }
+  .app-download h2 { font-size: 24px; }
+  .app-download-copy > p { font-size: 12.5px; }
+  .app-download-actions { width: 100%; flex-direction: column; align-items: stretch; gap: 10px; }
+  .app-download-button { width: 100%; }
+  .app-install-link { text-align: center; }
+  .app-install-panel { padding: 16px; }
+  .app-install-panel li { font-size: 12px; }
+  .upcoming-row {
+    width: 100%; overflow-x: auto; scroll-snap-type: x proximity;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .upcoming-card { min-width: min(82vw, 280px); scroll-snap-align: start; }
+  .filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .filter-group {
+    width: 100%; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding-bottom: 3px;
+  }
+  .chip { flex: 0 0 auto; padding: 7px 13px; font-size: 12px; }
+  .search-box, .search-box input { width: 100%; min-width: 0; }
+  .calendar-nav { gap: 10px; }
+  .calendar-weekdays { font-size: 10px; }
+  .calendar-grid { gap: 3px; }
+  .cal-cell { min-width: 0; min-height: 54px; padding: 4px 2px; border-radius: 10px; }
+  .cal-cell .cal-date { font-size: 10px; }
+  .cal-dots { gap: 2px; }
+  .cal-dot { width: 5px; height: 5px; }
+  .event-row { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .event-row .event-main { flex-basis: calc(100% - 24px); }
+  .event-row .event-date { width: 100%; white-space: normal; }
+  .rolling-row { display: grid; grid-template-columns: 1fr; }
+  .footer-dark { margin-top: 40px; border-radius: 24px 24px 0 0; }
+}
+
+@media (max-width: 360px) {
+  .container { padding-left: 12px; padding-right: 12px; }
+  .floating-nav { left: 8px; right: 8px; top: 8px; padding: 8px; }
+  .view-btn { font-size: 11px; padding: 7px 9px; }
+  main.container { padding-top: 132px; }
+  .display-h1 { font-size: 25px; }
+  .app-download { padding: 20px 16px; }
+  .app-download h2 { font-size: 22px; }
+  .cal-cell { min-height: 50px; }
+}

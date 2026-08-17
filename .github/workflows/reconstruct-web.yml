@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '.web_payload_gz/**'
+      - '.web_payload_fix/**'
       - '.github/workflows/reconstruct-web.yml'
   workflow_dispatch:
 
@@ -29,22 +30,34 @@ jobs:
           import base64, gzip
           from pathlib import Path
 
-          files = {
-              '.web_payload_gz/index.b64': '웹/frontend/index.html',
-              '.web_payload_gz/app.b64': '웹/frontend/app.js',
-              '.web_payload_gz/style.b64': '웹/frontend/style.css',
-              '.web_payload_gz/static.b64': '웹/frontend/static_api.js',
-              '.web_payload_gz/verify.b64': '웹/verify_all.py',
-              '.web_payload_gz/docs.b64': '웹/docs/DATA_SOURCES.md',
-          }
-          for source, target in files.items():
-              src = Path(source)
+          def decode_text(encoded: str) -> bytes:
+              clean = ''.join(encoded.split())
+              return gzip.decompress(base64.b64decode(clean, validate=True))
+
+          def decode_file(source: str, target: str):
+              data = decode_text(Path(source).read_text(encoding='ascii'))
               dst = Path(target)
-              encoded = ''.join(src.read_text(encoding='ascii').split())
-              data = gzip.decompress(base64.b64decode(encoded, validate=True))
               dst.parent.mkdir(parents=True, exist_ok=True)
               dst.write_bytes(data)
               print(f'OK {source} -> {target}: {len(data)} bytes')
+
+          def decode_parts(pattern: str, target: str):
+              parts = sorted(Path('.').glob(pattern))
+              if not parts:
+                  raise SystemExit(f'분할 payload 없음: {pattern}')
+              encoded = ''.join(p.read_text(encoding='ascii') for p in parts)
+              data = decode_text(encoded)
+              dst = Path(target)
+              dst.parent.mkdir(parents=True, exist_ok=True)
+              dst.write_bytes(data)
+              print(f'OK {pattern} ({len(parts)} parts) -> {target}: {len(data)} bytes')
+
+          decode_parts('.web_payload_fix/index.*.part', '웹/frontend/index.html')
+          decode_file('.web_payload_gz/app.b64', '웹/frontend/app.js')
+          decode_file('.web_payload_gz/style.b64', '웹/frontend/style.css')
+          decode_file('.web_payload_gz/static.b64', '웹/frontend/static_api.js')
+          decode_file('.web_payload_gz/verify.b64', '웹/verify_all.py')
+          decode_parts('.web_payload_fix/docs.*.part', '웹/docs/DATA_SOURCES.md')
           PY
 
       - name: JavaScript·Python 문법 검사

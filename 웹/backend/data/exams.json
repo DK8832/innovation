@@ -1,0 +1,269 @@
+{
+  "generated_note": "2026-08-15 기준 각 주관처 공식 사이트를 검색해 확인한 데이터. verified:false 항목은 정확한 날짜를 공식 사이트에서 재확인해야 함(추측으로 채우지 않음).",
+  "exams": [
+    {
+      "id": "information-processing-engineer",
+      "name": "정보처리기사",
+      "category": "national_tech",
+      "category_label": "국가기술자격",
+      "organizer": "한국산업인력공단(큐넷)",
+      "organizer_short": "큐넷",
+      "homepage": "https://www.q-net.or.kr",
+      "description": "IT 분야 대표 국가기술자격. 필기와 실기로 나뉘며 연 3회 시행된다.",
+      "sessions": [
+        {
+          "round": "2026년 3회",
+          "phase": "필기",
+          "apply_start": "2026-07-20",
+          "apply_end": "2026-07-23",
+          "exam_start": "2026-08-07",
+          "exam_end": "2026-09-01",
+          "result_date": "2026-09-09",
+          "verified": true,
+          "note": null
+        },
+        {
+          "round": "2026년 3회",
+          "phase": "실기",
+          "apply_start": "2026-09-21",
+          "apply_end": "2026-09-23",
+          "exam_start": "2026-10-24",
+          "exam_end": "2026-11-13",
+          "result_date": null,
+          "verified": true,
+          "note": "추가접수 9.28(월) 별도 진행. 합격자 발표일은 큐넷 공고 예정"
+        }
+      ]
+    },
+    {
+      "id": "industrial-safety-engineer",
+      "name": "산업안전기사",
+      "category": "national_tech",
+      "category_label": "국가기술자격",
+      "organizer": "한국산업인력공단(큐넷)",
+      "organizer_short": "큐넷",
+      "homepage": "https://www.q-net.or.kr",
+      "description": "산업 현장 안전관리 국가기술자격. 필기와 실기로 나뉘며 연 3회 시행된다.",
+      "sessions": [
+        {
+          "round": "2026년 3회",
+          "phase": "필기",
+          "apply_start": "2026-07-20",
+          "apply_end": "2026-07-23",
+          "exam_start": "2026-08-07",
+          "exam_end": "2026-09-01",
+          "result_date": "2026-09-09",
+          "verified": true,
+          "note": null
+        },
+        {
+          "round": "2026년 3회",
+          "phase": "실기",
+          "apply_start": "2026-09-21",
+          "apply_end": "2026-09-23",
+          "exam_start": "2026-10-24",
+          "exam_end": "2026-11-13",
+          "result_date": null,
+          "verified": true,
+          "note": "추가접수 9.28(월) 별도 진행. 합격자 발표일은 큐넷 공고 예정"
+        }
+      ]
+    },
+    {
+      "id": "electrical-engineer",
+      "name": "전기기사",
+      "category": "national_tech",
+      "category_label": "국가기술자격",
+      "organizer": "한국산업인력공단(큐넷)",
+      "organizer_short": "큐넷",
+      "homepage": "https://www.q-net.or.kr",
+      "description": "전기설비 설계·운영 국가기술자격. 필기와 실기로 나뉘며 연 3회 시행된다.",
+      "sessions": [
+        {
+          "round": "2026년 3회",
+          "phase": "필기",
+          "apply_start": "2026-07-20",
+          "apply_end": "2026-07-23",
+          "exam_start": "2026-08-07",
+          "exam_end": "2026-09-01",
+          "result_date": "2026-09-09",
+          "verified": true,
+          "note": null
+        },
+        {
+          "round": "2026년 3회",
+          "phase": "실기",
+          "apply_start": "2026-09-21",
+          "apply_end": "2026-09-23",
+          "exam_start": "2026-10-24",
+          "exam_end": "2026-11-13",
+          "result_date": null,
+          "verified": true,
+          "note": "추가접수 9.28(월) 별도 진행. 합격자 발표일은 큐넷 공고 예정"
+        }
+      ]
+    },
+    {
+      "id": "computer-literacy",
+      "name": "컴퓨터활용능력",
+      "category": "chamber",
+      "category_label": "상공회의소 자격",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "organizer_short": "상공회의소",
+      "homepage": "https://license.korcham.net",
+      "description": "1급·2급으로 나뉘는 사무 자격증. 정해진 회차 없이 연중 상시로 접수·응시한다.",
+      "sessions": [
+        {
+          "round": "상시",
+          "phase": "상시",
+          "apply_start": null,
+          "apply_end": null,
+          "exam_start": null,
+          "exam_end": null,
+          "result_date": null,
+          "rolling": true,
+          "verified": false,
+          "note": "연중 상시 접수·시험(예약일로부터 4주 이내 응시). 지역·시험장별 잔여 좌석은 공식 사이트에서 실시간 확인 필요"
+        }
+      ]
+    },
+    {
+      "id": "computerized-accounting-operator-1",
+      "name": "전산회계운용사 1급",
+      "category": "chamber",
+      "category_label": "상공회의소 자격",
+      "organizer": "대한상공회의소 자격평가사업단",
+      "organizer_short": "상공회의소",
+      "homepage": "https://license.korcham.net",
+      "description": "회계 소프트웨어 실무 자격증. 필기는 5·8·11월 일요일, 실기는 4월과 10월에 시행된다.",
+      "sessions": [
+        {
+          "round": "2026년 실기(10월)",
+          "phase": "실기",
+          "apply_start": null,
+          "apply_end": null,
+          "exam_start": "2026-10-10",
+          "exam_end": "2026-10-10",
+          "result_date": null,
+          "verified": false,
+          "note": "실기 시행일만 확인됨(10.10). 정확한 접수기간·필기(11월 일요일) 일정은 공식 사이트에서 확인 필요"
+        }
+      ]
+    },
+    {
+      "id": "korean-history-exam",
+      "name": "한국사능력검정시험",
+      "category": "history",
+      "category_label": "한국사능력검정",
+      "organizer": "국사편찬위원회",
+      "organizer_short": "국사편찬위원회",
+      "homepage": "https://www.historyexam.go.kr",
+      "description": "한국사 이해 수준을 평가하는 국가공인 시험. 공무원 가산점 등으로 널리 활용된다.",
+      "sessions": [
+        {
+          "round": "제80회",
+          "phase": "심화",
+          "apply_start": "2026-09-15",
+          "apply_end": "2026-09-22",
+          "exam_start": "2026-10-17",
+          "exam_end": "2026-10-17",
+          "result_date": null,
+          "verified": true,
+          "note": "제80회는 심화 등급만 시행(기본 등급 미시행)"
+        }
+      ]
+    },
+    {
+      "id": "toeic",
+      "name": "TOEIC",
+      "category": "language",
+      "category_label": "어학",
+      "organizer": "한국TOEIC위원회(YBM)",
+      "organizer_short": "YBM",
+      "homepage": "https://exam.toeic.co.kr",
+      "description": "국내에서 가장 널리 쓰이는 영어 어학 자격시험. 매달 여러 회차가 시행된다.",
+      "sessions": [
+        {
+          "round": "9월 6일 시험",
+          "phase": "정기시험",
+          "apply_start": "2026-07-20",
+          "apply_end": "2026-08-24",
+          "exam_start": "2026-09-06",
+          "exam_end": "2026-09-06",
+          "result_date": "2026-09-15",
+          "verified": true,
+          "note": null
+        },
+        {
+          "round": "9월 20일 시험",
+          "phase": "정기시험",
+          "apply_start": "2026-08-03",
+          "apply_end": "2026-09-07",
+          "exam_start": "2026-09-20",
+          "exam_end": "2026-09-20",
+          "result_date": "2026-09-29",
+          "verified": true,
+          "note": null
+        }
+      ]
+    },
+    {
+      "id": "toeic-speaking",
+      "name": "TOEIC Speaking",
+      "category": "language",
+      "category_label": "어학",
+      "organizer": "한국TOEIC위원회(YBM)",
+      "organizer_short": "YBM",
+      "homepage": "https://www.toeicswt.co.kr",
+      "description": "영어 말하기 능력을 평가하는 어학시험. 매달 여러 회차가 시행된다.",
+      "sessions": [
+        {
+          "round": "9월 26일 시험",
+          "phase": "정기시험",
+          "apply_start": "2026-08-24",
+          "apply_end": "2026-09-23",
+          "exam_start": "2026-09-26",
+          "exam_end": "2026-09-26",
+          "result_date": "2026-10-01",
+          "verified": true,
+          "note": null
+        },
+        {
+          "round": "10월 4일 시험",
+          "phase": "정기시험",
+          "apply_start": "2026-08-31",
+          "apply_end": "2026-10-01",
+          "exam_start": "2026-10-04",
+          "exam_end": "2026-10-04",
+          "result_date": "2026-10-09",
+          "verified": true,
+          "note": null
+        }
+      ]
+    },
+    {
+      "id": "opic",
+      "name": "OPIc",
+      "category": "language",
+      "category_label": "어학",
+      "organizer": "(주)한국외국어평가원",
+      "organizer_short": "OPIc",
+      "homepage": "https://www.opic.or.kr",
+      "description": "컴퓨터 기반 영어 말하기 평가. 일부 공휴일을 제외하고 거의 매일 시행된다.",
+      "sessions": [
+        {
+          "round": "상시",
+          "phase": "상시",
+          "apply_start": null,
+          "apply_end": null,
+          "exam_start": null,
+          "exam_end": null,
+          "result_date": null,
+          "rolling": true,
+          "verified": false,
+          "note": "일부 공휴일을 제외하고 거의 매일 시행. 원하는 날짜를 선택해 온라인으로 접수(선착순 마감)"
+        }
+      ]
+    }
+  ]
+}

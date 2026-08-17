@@ -1,0 +1,3 @@
+# Kept at repo root so automated tooling can auto-detect the Python stack.
+# Actual dependency list lives in backend/requirements.txt.
+-r backend/requirements.txt

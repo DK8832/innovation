@@ -1,0 +1,101 @@
+name: CERTI:ON 웹 소스 재구성·검증
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.web_payload_gz/**'
+      - '.github/workflows/reconstruct-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 압축된 웹 소스 재구성 및 SHA-256 검증
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import gzip
+          import hashlib
+          import json
+          from pathlib import Path
+
+          payload = Path('.web_payload_gz')
+          manifest = json.loads((payload / 'manifest.json').read_text(encoding='utf-8'))
+
+          for key, meta in manifest.items():
+              source = payload / f'{key}.b64'
+              if not source.is_file():
+                  raise SystemExit(f'{key}: payload missing: {source}')
+
+              encoded = source.read_text(encoding='ascii').strip()
+              compressed = base64.b64decode(encoded, validate=True)
+              data = gzip.decompress(compressed)
+
+              digest = hashlib.sha256(data).hexdigest()
+              if digest != meta['sha256']:
+                  raise SystemExit(
+                      f'{key}: SHA-256 mismatch: {digest} != {meta["sha256"]}'
+                  )
+              if len(data) != meta['size']:
+                  raise SystemExit(
+                      f'{key}: size mismatch: {len(data)} != {meta["size"]}'
+                  )
+
+              target = Path(meta['path'])
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              print(f'OK {key}: {target} ({len(data)} bytes, {digest})')
+          PY
+
+      - name: JavaScript·Python 문법 검사
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check '웹/frontend/app.js'
+          node --check '웹/frontend/static_api.js'
+          python3 - <<'PY'
+          import py_compile
+          from pathlib import Path
+          for p in Path('웹').rglob('*.py'):
+              py_compile.compile(str(p), doraise=True)
+              print('PY OK', p)
+          PY
+
+      - name: FastAPI 의존성 설치
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check -r '웹/backend/requirements.txt'
+
+      - name: 프로젝트 자동 검증 실행
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 '웹/verify_all.py'
+
+      - name: 재구성된 웹 소스 커밋
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add '웹'
+          if git diff --cached --quiet; then
+            echo '재구성 결과가 이미 동일합니다.'
+          else
+            git commit -m 'feat: CERTI:ON 웹 원본 소스 재구성 및 검증 완료'
+            git push
+          fi

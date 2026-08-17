@@ -53,7 +53,21 @@ jobs:
       TAG: ${{ matrix.tag }}
 
     steps:
+      - name: 기존 APK Asset 확인
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="CERTI_ON_${TAG}_ANDROID.apk"
+          echo "EXPECTED_APK=$EXPECTED" >> "$GITHUB_ENV"
+          if gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED"; then
+            echo "이미 $EXPECTED 가 존재하므로 재빌드를 건너뜁니다."
+            echo "SKIP_BUILD=true" >> "$GITHUB_ENV"
+          else
+            echo "SKIP_BUILD=false" >> "$GITHUB_ENV"
+          fi
+
       - name: 빌드 도구 준비
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -61,6 +75,7 @@ jobs:
           sudo apt-get install -y -qq unzip zip jq
 
       - name: Flutter 3.35.5 설치
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -70,6 +85,7 @@ jobs:
           "$HOME/flutter/bin/flutter" config --no-analytics
 
       - name: 해당 릴리스의 실제 원본 소스 ZIP 다운로드
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -85,6 +101,7 @@ jobs:
           echo "원본 Asset: $ASSET"
 
       - name: 소스 압축 해제 및 Flutter 프로젝트 루트 탐지
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -114,6 +131,7 @@ jobs:
           test -f "$ROOT/lib/main.dart"
 
       - name: Android 빌드 래퍼 확인·보완
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -128,6 +146,7 @@ jobs:
           chmod +x android/gradlew
 
       - name: Flutter 의존성 설치
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -135,6 +154,7 @@ jobs:
           flutter pub get
 
       - name: ARM64 Release APK 실제 빌드
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -142,21 +162,22 @@ jobs:
           flutter build apk --release --target-platform android-arm64
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -s "$APK"
-          OUT="$RUNNER_TEMP/CERTI_ON_${TAG}_ANDROID.apk"
+          OUT="$RUNNER_TEMP/$EXPECTED_APK"
           cp "$APK" "$OUT"
           echo "APK_PATH=$OUT" >> "$GITHUB_ENV"
           sha256sum "$OUT"
           ls -lh "$OUT"
 
       - name: 해당 GitHub Release Assets에 APK 업로드
+        if: env.SKIP_BUILD != 'true'
         shell: bash
         run: |
           set -euo pipefail
           gh release upload "$TAG" "$APK_PATH" -R "$REPO" --clobber
-          EXPECTED="CERTI_ON_${TAG}_ANDROID.apk"
-          FOUND="$(gh release view "$TAG" -R "$REPO" --json assets --jq --arg n "$EXPECTED" '.assets[] | select(.name == $n) | .name')"
-          if [ "$FOUND" != "$EXPECTED" ]; then
-            echo "::error::$TAG APK 업로드 후 Asset 검증에 실패했습니다."
-            exit 1
-          fi
-          echo "$TAG -> $EXPECTED 업로드 및 검증 완료"
+
+      - name: Release APK 최종 검증
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED_APK"
+          echo "$TAG -> $EXPECTED_APK 존재 확인 완료"

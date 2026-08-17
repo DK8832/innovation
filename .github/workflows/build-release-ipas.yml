@@ -160,6 +160,15 @@ jobs:
               s = pbx.read_text(encoding='utf-8', errors='ignore')
               s = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = \d+(?:\.\d+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 14.0;', s)
               pbx.write_text(s, encoding='utf-8')
+
+          # v2 소스는 더 최신 Flutter 템플릿의 ImplicitEngine API를 사용한다.
+          # 역사 보관 소스 자체는 건드리지 않고 CI 작업 복사본에서 3.35.5 호환 AppDelegate로만 변환한다.
+          app = Path('ios/Runner/AppDelegate.swift')
+          if app.exists():
+              s = app.read_text(encoding='utf-8', errors='ignore')
+              if 'FlutterImplicitEngineDelegate' in s or 'FlutterImplicitEngineBridge' in s:
+                  app.write_text('''import Flutter\nimport UIKit\n\n@main\n@objc class AppDelegate: FlutterAppDelegate {\n  override func application(\n    _ application: UIApplication,\n    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?\n  ) -> Bool {\n    GeneratedPluginRegistrant.register(with: self)\n    return super.application(application, didFinishLaunchingWithOptions: launchOptions)\n  }\n}\n''', encoding='utf-8')
+                  print('Patched AppDelegate.swift to Flutter 3.35.5-compatible template')
           PY
 
       - name: Flutter 의존성 설치
@@ -250,5 +259,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED_IPA"
-          echo "$TAG -> $EXPECTED_IPA 존재 확인 완료"
+          for attempt in 1 2 3 4 5 6; do
+            if gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED_IPA"; then
+              echo "$TAG -> $EXPECTED_IPA 존재 확인 완료"
+              exit 0
+            fi
+            echo "GitHub Release API 반영 대기 중... ($attempt/6)"
+            sleep 5
+          done
+          echo "::error::$TAG 릴리스에서 $EXPECTED_IPA 최종 확인 실패"
+          exit 1

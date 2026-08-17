@@ -1,8 +1,0 @@
-.dart_tool/
-build/
-android/.gradle/
-.idea/
-*.iml
-OUTPUT/
-logs/
-PC_AI_ADDRESS.txt

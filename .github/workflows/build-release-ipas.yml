@@ -1,0 +1,223 @@
+name: CERTI:ON 전체 릴리스 iOS IPA 빌드·첨부
+
+on:
+  push:
+    branches:
+      - build-release-apks
+    paths:
+      - '.github/workflows/build-release-ipas.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ipa:
+    name: ${{ matrix.tag }} IPA
+    runs-on: macos-15
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        tag:
+          - v0.1.0
+          - v0.2.0
+          - v0.3.0
+          - v0.4.0
+          - v0.5.0
+          - v0.6.0
+          - v0.7.0
+          - v0.8.0
+          - v0.9.0
+          - v0.10.0
+          - v0.11.0
+          - v0.12.0
+          - v0.13.0
+          - v0.14.0
+          - v0.15.0
+          - v0.16.0
+          - v0.17.0
+          - v0.18.0
+          - v0.19.0
+          - v0.20.0
+          - v0.21.0
+          - v0.22.0
+          - v0.23.0
+          - v1.0.0
+          - v2.0.0
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      TAG: ${{ matrix.tag }}
+
+    steps:
+      - name: 기존 IPA Asset 확인
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="CERTI_ON_${TAG}_IOS_UNSIGNED.ipa"
+          echo "EXPECTED_IPA=$EXPECTED" >> "$GITHUB_ENV"
+          if gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED"; then
+            echo "이미 $EXPECTED 가 존재하므로 재빌드를 건너뜁니다."
+            echo "SKIP_BUILD=true" >> "$GITHUB_ENV"
+          else
+            echo "SKIP_BUILD=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Flutter 3.35.5 설치
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch 3.35.5 https://github.com/flutter/flutter.git "$HOME/flutter"
+          echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
+          "$HOME/flutter/bin/flutter" --version
+          "$HOME/flutter/bin/flutter" config --no-analytics
+
+      - name: 해당 릴리스 실제 원본 SOURCE.zip 다운로드
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-src"
+          ASSET="$(gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[] | select(.name | test("SOURCE\\.zip$")) | .name' | head -n 1)"
+          if [ -z "$ASSET" ]; then
+            echo "::error::$TAG 릴리스에서 SOURCE.zip 원본 Asset을 찾지 못했습니다."
+            exit 1
+          fi
+          echo "SOURCE_ASSET=$ASSET" >> "$GITHUB_ENV"
+          gh release download "$TAG" -R "$REPO" --pattern "$ASSET" --dir "$RUNNER_TEMP/release-src"
+          test -s "$RUNNER_TEMP/release-src/$ASSET"
+          echo "원본 Asset: $ASSET"
+
+      - name: 소스 압축 해제 및 Flutter 프로젝트 루트 탐지
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/project"
+          unzip -q "$RUNNER_TEMP/release-src/$SOURCE_ASSET" -d "$RUNNER_TEMP/project"
+          chmod -R u+rwX "$RUNNER_TEMP/project"
+          ROOT="$(python3 - <<'PY'
+          import os
+          from pathlib import Path
+          base = Path(os.environ['RUNNER_TEMP']) / 'project'
+          candidates = []
+          for p in base.rglob('pubspec.yaml'):
+              rel = p.relative_to(base)
+              if any(x in {'.dart_tool', 'build'} for x in rel.parts):
+                  continue
+              score = (1 if 'packages' in rel.parts else 0, len(rel.parts), str(rel))
+              candidates.append((score, p.parent))
+          if not candidates:
+              raise SystemExit('pubspec.yaml not found')
+          candidates.sort(key=lambda x: x[0])
+          print(candidates[0][1])
+          PY
+          )"
+          echo "PROJECT_ROOT=$ROOT" >> "$GITHUB_ENV"
+          echo "Flutter project root: $ROOT"
+          test -f "$ROOT/pubspec.yaml"
+          test -f "$ROOT/lib/main.dart"
+
+      - name: iOS 프로젝트 래퍼 확인·생성
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_ROOT"
+          rm -rf .dart_tool build
+          chmod -R u+rwX .
+          if [ ! -d ios ] || [ ! -f ios/Runner.xcodeproj/project.pbxproj ]; then
+            echo "iOS 플랫폼 파일이 없어 Flutter 표준 iOS wrapper를 생성합니다."
+            flutter create --platforms=ios --org com.dk8832 --project-name certi_on .
+          fi
+          test -f ios/Runner.xcodeproj/project.pbxproj
+
+      - name: iOS 빌드 호환성 보정
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_ROOT"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          # 오래된 스냅샷에서 너무 낮은 deployment target 때문에 최신 Xcode/CocoaPods가 실패하는 것을 방지.
+          podfile = Path('ios/Podfile')
+          if podfile.exists():
+              s = podfile.read_text(encoding='utf-8', errors='ignore')
+              if re.search(r"platform\s*:ios", s):
+                  s = re.sub(r"platform\s*:ios\s*,\s*['\"]\d+(?:\.\d+)?['\"]", "platform :ios, '13.0'", s, count=1)
+              else:
+                  s = "platform :ios, '13.0'\n" + s
+              podfile.write_text(s, encoding='utf-8')
+
+          pbx = Path('ios/Runner.xcodeproj/project.pbxproj')
+          if pbx.exists():
+              s = pbx.read_text(encoding='utf-8', errors='ignore')
+              s = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = \d+(?:\.\d+)?;', 'IPHONEOS_DEPLOYMENT_TARGET = 13.0;', s)
+              pbx.write_text(s, encoding='utf-8')
+
+          # 역사 버전의 번들 식별자를 릴리스별로 바꿀 필요는 없지만,
+          # Xcode가 유효한 identifier를 요구하므로 비어 있거나 template 값만 정리.
+          info = Path('ios/Runner/Info.plist')
+          if info.exists():
+              s = info.read_text(encoding='utf-8', errors='ignore')
+              s = s.replace('$(PRODUCT_BUNDLE_IDENTIFIER)', 'com.dk8832.certion') if '$(PRODUCT_BUNDLE_IDENTIFIER)' not in s else s
+              info.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Flutter 의존성 설치
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_ROOT"
+          flutter pub get
+
+      - name: iPhone Release 앱 실제 빌드 (코드서명 없음)
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_ROOT"
+          flutter build ios --release --no-codesign
+          APP="build/ios/iphoneos/Runner.app"
+          test -d "$APP"
+          test -s "$APP/Runner"
+          echo "APP_PATH=$PROJECT_ROOT/$APP" >> "$GITHUB_ENV"
+
+      - name: unsigned IPA 패키징
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/ipa-stage"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/Payload"
+          cp -R "$APP_PATH" "$STAGE/Payload/Runner.app"
+          OUT="$RUNNER_TEMP/$EXPECTED_IPA"
+          cd "$STAGE"
+          /usr/bin/zip -qry "$OUT" Payload
+          test -s "$OUT"
+          echo "IPA_PATH=$OUT" >> "$GITHUB_ENV"
+          shasum -a 256 "$OUT"
+          ls -lh "$OUT"
+
+      - name: 해당 GitHub Release Assets에 IPA 업로드
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" "$IPA_PATH" -R "$REPO" --clobber
+
+      - name: Release IPA 최종 검증
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" -R "$REPO" --json assets --jq '.assets[].name' | grep -Fxq "$EXPECTED_IPA"
+          echo "$TAG -> $EXPECTED_IPA 존재 확인 완료"

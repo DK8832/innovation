@@ -146,7 +146,6 @@ jobs:
           from pathlib import Path
           import re
 
-          # 후기 역사 버전의 llama_flutter_android iOS pod가 iOS 14.0 이상을 요구함.
           podfile = Path('ios/Podfile')
           if podfile.exists():
               s = podfile.read_text(encoding='utf-8', errors='ignore')
@@ -170,6 +169,24 @@ jobs:
           set -euo pipefail
           cd "$PROJECT_ROOT"
           flutter pub get
+
+      - name: llama iOS Metal 빌드 환경 보완
+        if: env.SKIP_BUILD != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_ROOT"
+          if grep -q 'llama_flutter_android' pubspec.yaml; then
+            echo "llama_flutter_android 감지: Metal Toolchain과 ggml 헤더 경로를 준비합니다."
+            xcodebuild -downloadComponent MetalToolchain
+            xcrun -sdk iphoneos metal -v >/dev/null 2>&1 || true
+            while IFS= read -r SRC; do
+              METAL_DIR="$SRC/ggml-metal"
+              if [ -d "$METAL_DIR" ] && [ -f "$SRC/ggml-common.h" ]; then
+                ln -sf ../ggml-common.h "$METAL_DIR/ggml-common.h"
+              fi
+            done < <(find "$HOME/.pub-cache" "$PROJECT_ROOT" -type d -path '*/llama_cpp_src/ggml/src' 2>/dev/null || true)
+          fi
 
       - name: iPhone Release 앱 실제 빌드 (코드서명 없음)
         if: env.SKIP_BUILD != 'true'
